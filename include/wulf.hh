@@ -21,6 +21,8 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <mutex>
 #include <vector>

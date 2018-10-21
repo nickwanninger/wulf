@@ -1,5 +1,5 @@
 CC = clang++
-WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused -lreadline
+WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused -lreadline -lc
 CFLAGS = -I./include
 
 objs = $(srcs:.cc=.o)
