@@ -26,6 +26,7 @@ public:
 	int type;
 	char* value;
 	Token(int, char*);
+	~Token();
 };
 
 /*

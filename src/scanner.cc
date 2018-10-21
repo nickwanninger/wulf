@@ -15,23 +15,21 @@ Scanner::Scanner(FILE* source) {
  */
 std::vector<Token> *Scanner::run() {
 
-	std::vector<Token> *toks = new std::vector<Token>();
 	// aquire the lock for the scanner c bindings
 	scanner_lock.lock();
 
+
+	std::vector<Token> *toks = new std::vector<Token>();
+	// rewind the file pointer to the start (jic)
 	rewind(fp);
-
-
+	// set the global yyin file pointer
 	yyin = fp;
-
-
 	int ntok;
 
-
 	// scan over all the tokens
+	// adding them to the vector
 	while ((ntok = yylex())) {
 		Token tok(ntok, strdup(yytext));
-		std::cout << yytext << "\n";
 		toks->push_back(tok);
 	}
 
@@ -45,4 +43,7 @@ std::vector<Token> *Scanner::run() {
 Token::Token(int type, char* value) {
 	this->type = type;
 	this->value = value;
+}
+
+Token::~Token() {
 }

@@ -22,5 +22,6 @@ int main(int argc, char** argv) {
 
 	std::cout << toks->size() << "\n";
 
+	delete toks;
 	return 0;
 }
