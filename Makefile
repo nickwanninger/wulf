@@ -45,4 +45,3 @@ gen: src/lex.yy.cc
 
 src/lex.yy.cc: src/wulf.l
 	flex -o $@ $<
-
