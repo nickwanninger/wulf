@@ -1,8 +1,9 @@
 CC = clang++
-WARNINGS = -Wall -Wformat -Wno-deprecated-declarations -Wno-unused
+WARNINGS = -Wall -Wformat -Wno-deprecated-declarations -Wno-unused -Wdeprecated-register
 CFLAGS = -I./include
 
-objs = $(srcs:.cpp=.o)
+objs = $(srcs:.cc=.o)
+includes = $(wildcard include/*.hh)
 exe = wulfc
 
 SRCDIR = src
@@ -12,17 +13,17 @@ STRUCTURE := $(shell find $(SRCDIR) -type d)
 CODEFILES := $(addsuffix /*,$(STRUCTURE))
 CODEFILES := $(wildcard $(CODEFILES))
 
-SRCFILES := $(filter %.cpp,$(CODEFILES))
-OBJFILES := $(subst $(SRCDIR),$(OBJDIR),$(SRCFILES:%.cpp=%.o))
+SRCFILES := $(filter %.cc,$(CODEFILES))
+OBJFILES := $(subst $(SRCDIR),$(OBJDIR),$(SRCFILES:%.cc=%.o))
 
-.PHONY: all clean
+.PHONY: all clean gen
 
-all: $(OBJDIR) $(exe)
+all: gen $(OBJDIR) $(exe)
 
 $(OBJDIR):
 	@mkdir -p $@
 
-$(OBJDIR)/%.o: $(addprefix $(SRCDIR)/,%.cpp)
+$(OBJDIR)/%.o: $(addprefix $(SRCDIR)/,%.cc) ${includes}
 	@printf "Compiling    $@ <- $<\n"
 	@mkdir -p $(dir $@)
 	@$(CC) $(WARNINGS) $(CFLAGS) -c $< -o $@
@@ -33,6 +34,15 @@ $(exe):  $(OBJFILES)
 
 clean:
 	@rm -rf $(exe)
+	@rm -rf src/gen
 	@rm -rf $(OBJDIR)/*.o
 	@rm -rf $(OBJDIR)/render/*.o
+
+
+
+gen: src/lex.yy.cc
+
+
+src/lex.yy.cc: src/wulf.l
+	flex -o $@ $<
 
