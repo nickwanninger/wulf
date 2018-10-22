@@ -21,6 +21,15 @@
 
 using namespace ast;
 
-std::string Node::to_string() {
-	return NULL;
+Ident::Ident(char* val) {
+	value = std::string(val);
 }
+
+Ident::Ident(std::string v) {
+	value = v;
+}
+
+std::string Ident::to_string() {
+	return value;
+}
+

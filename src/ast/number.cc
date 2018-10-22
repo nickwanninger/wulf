@@ -21,6 +21,26 @@
 
 using namespace ast;
 
-std::string Node::to_string() {
-	return NULL;
+
+Number::Number(char* val) {
+	value = std::atof(val);
+}
+
+
+Number::Number(long val) {
+	value = (double)val;
+}
+
+Number::Number(double val) {
+	value = val;
+}
+
+// default constructor (sets to zero)
+Number::Number() {
+	value = 0;
+}
+
+
+std::string Number::to_string() {
+	return std::to_string(value);
 }

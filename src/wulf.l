@@ -35,8 +35,8 @@
 }
 
 
-[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
+[a-zA-Z][_a-zA-Z0-9\-\/\.:]* {
+	return TOK_IDENTIFIER;
 }
 
 -?([0-9]+([.][0-9]*)?|[.][0-9]+) {
@@ -44,8 +44,9 @@
 }
 
 [\d\+\-\*\/\.\-><]* {
-	return TOK_OPERATOR;
+	return TOK_IDENTIFIER;
 }
+
 :[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
 	return TOK_SYMBOL;
 }

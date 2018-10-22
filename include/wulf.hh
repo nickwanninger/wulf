@@ -31,8 +31,9 @@
 #include <string>
 
 #include <value.hh>
-
-
+#include <parser.hh>
+#include <state.hh>
+#include <scanner.hh>
 // -- scanner nonsense --
 
 extern std::mutex scanner_lock;
@@ -46,45 +47,7 @@ char* read_file_contents(char*);
 
 
 
-/*
- * the token class represents a single token emitted by the tokenizer
- */
-class Token {
-public:
-	int type;
-	char* value;
-	Token(int, char*);
-	~Token();
-};
-
-// declare the "shift into stream" operator for a token
-std::ostream& operator<<(std::ostream& os, const Token& m);
-
-/*
- * the scanner class implements wrappers around the flex scanner interface
- */
-class Scanner {
-private:
-	FILE* fp = NULL;
-public:
-	Scanner(FILE*);
-	Scanner(char*);
-	std::vector<Token> run();
-};
-
-
-
-class State {
-	int repl_index = 0;
-public:
-	void eval(char*);
-	void eval_file(char*);
-	void run_repl();
-	char* repl_readline();
-	std::vector<Token> lex(char* source);
-};
-
-
+#define TOK_EOF         0
 #define TOK_UNKNOWN     1
 #define TOK_NUMBER      2
 #define TOK_IDENTIFIER  3
