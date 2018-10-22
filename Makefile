@@ -1,8 +1,7 @@
-cc = $(CC)
-cc ?= g++
+CXX = clang++
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
-CFLAGS = -std=c++11 -lreadline -lc -I./include
-
+CFLAGS = -I./include
+LDLIBS = -std=c++11 -lc -lreadline
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)
@@ -34,11 +33,11 @@ $(OBJDIR):
 $(OBJDIR)/%.o: $(addprefix $(SRCDIR)/,%.cc) ${includes}
 	@printf " CC\t$@\n"
 	@mkdir -p $(dir $@)
-	@$(cc) $(WARNINGS) $(CFLAGS) -c $< -o $@
+	@$(CXX) $(WARNINGS) $(CFLAGS) -c $< -o $@
 
 $(exe): $(OBJFILES)
 	@printf " LD\t$@\n"
-	@$(cc) $(WARNINGS) -o $@ $(foreach i,$^,$(i) ) $(LDLIBS)
+	@$(CXX) $(LDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
 
 clean:
 	@rm -rf $(exe)
