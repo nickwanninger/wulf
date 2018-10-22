@@ -31,7 +31,8 @@ std::string List::to_string() {
 	for (int i = 0; i < args.size(); i++) {
 		auto& arg = args[i];
 		os << arg->to_string();
-		os << " ";
+		if (i < args.size()-1)
+			os << " ";
 	}
 	os << ")";
 	return os.str();

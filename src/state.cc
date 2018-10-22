@@ -8,11 +8,20 @@
 
 void State::eval(char* source) {
 
-	ast::Node *node = new ast::Program();
-
 	std::vector<Token> toks = lex(source);
-	for (auto& tok : toks) {
-		std::cout << tok << "\n";
+
+	Parser* parser = new Parser(toks);
+
+	std::vector<ast::Node*> nodes;
+	try {
+		nodes = parser->parse_top_level();
+	} catch (const char* msg) {
+		std::cout << "Evaluation Failed: " << msg << "\n";
+		return;
+	}
+
+	for (ast::Node* node : nodes) {
+		std::cout << "top level: " << node->to_string() << "\n";
 	}
 }
 

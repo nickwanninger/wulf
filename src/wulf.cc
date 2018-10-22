@@ -23,6 +23,7 @@
 
 int main(int argc, char** argv) {
 
+
 	State *state = new State();
 	int ntoken, vtoken;
 

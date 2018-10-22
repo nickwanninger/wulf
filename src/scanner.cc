@@ -19,7 +19,7 @@
 
 #include <wulf.hh>
 #include <color.hh>
-#include <strings.h>
+
 std::mutex scanner_lock;
 
 /*
@@ -76,6 +76,14 @@ Token::Token(int type, char* value) {
 	}
 	this->type = type;
 	this->value = value;
+}
+
+Token::Token(int type, const char* value) {
+	Token(type, strdup(value));
+}
+
+Token::Token() {
+	Token(0, (char*)NULL);
 }
 
 Token::~Token() {

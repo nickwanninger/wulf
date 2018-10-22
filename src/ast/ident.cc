@@ -1,4 +1,5 @@
 /*
+ * A compiler for the wulf language
  * Copyright (C) 2018  Nick Wanninger
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,43 +17,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __WULF_HH_
-#define __WULF_HH_
+#include <ast.hh>
 
-#include <iostream>
-#include <stdio.h>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <mutex>
-#include <vector>
-#include <strings.h>
-#include <sstream>
-#include <string>
+using namespace ast;
 
-#include <value.hh>
-#include <parser.hh>
-#include <state.hh>
-#include <scanner.hh>
+Ident::Ident(char* val) {
+	value = std::string(val);
+}
 
+Ident::Ident(std::string v) {
+	value = v;
+}
 
+std::string Ident::to_string() {
+	return value;
+}
 
-extern std::mutex scanner_lock;
-extern int yylex();
-extern int yylineno;
-extern char* yytext;
-extern FILE* yyin;
-
-char* read_file_contents(char*);
-
-#define TOK_EOF         0
-#define TOK_UNKNOWN     1
-#define TOK_NUMBER      2
-#define TOK_IDENTIFIER  3
-#define TOK_LPAREN      4
-#define TOK_RPAREN      5
-#define TOK_OPERATOR    6
-#define TOK_SYMBOL      7
-#define TOK_STRING      8
-
-#endif
