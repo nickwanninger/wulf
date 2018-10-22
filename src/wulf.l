@@ -39,6 +39,7 @@
 	return TOK_IDENTIFIER;
 }
 
+
 -?([0-9]+([.][0-9]*)?|[.][0-9]+) {
 	return TOK_NUMBER;
 }

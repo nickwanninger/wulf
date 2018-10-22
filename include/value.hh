@@ -20,12 +20,29 @@
 #ifndef __VALUE_HH__
 #define __VALUE_HH__
 
-#include <wulf.hh>
+#include <string>
 
-class value {
-public:
-	virtual std::string to_string();
-};
+namespace value {
+	/*
+	 * Value is a class that other classes will
+	 * extend. When they do such, the derived classes
+	 * will be wulf value types. (ie: Number, String, List)
+	 */
+	class Value {
+	public:
+
+		Value();
+		virtual Value operator+(const Value&) const;
+		virtual Value operator-(const Value&) const;
+		virtual Value operator*(const Value&) const;
+		virtual Value operator/(const Value&) const;
+		virtual Value operator>(const Value&) const;
+		virtual Value operator<(const Value&) const;
+
+		virtual std::string to_string();
+	};
+
+}
 
 
 #endif

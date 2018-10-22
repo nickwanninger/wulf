@@ -48,3 +48,9 @@ std::string Number::to_string() {
 	os << value;
 	return os.str();
 }
+
+
+value::Value Number::eval() {
+	value::Value v;
+	return v;
+}

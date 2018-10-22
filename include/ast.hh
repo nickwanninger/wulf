@@ -24,12 +24,14 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <value.hh>
+
 namespace ast {
 
 	class Node {
 		public:
 			bool evaluated = false;
-
+			virtual value::Value eval();
 			// simple print method
 			// virtual methods for a node
 			// all sub classes must implement these
@@ -38,23 +40,13 @@ namespace ast {
 	};
 
 
-	/*
-	 * a Program represents a program's parse state,
-	 * and has a listing of top level nodes
-	 */
-	class Program : public Node {
-		private:
-			std::vector<Node*> nodes;
-		public:
-			void push_node(Node*);
-			std::string to_string();
-	};
 
 	class List : public Node {
 		private:
 			std::vector<Node*> args;
 		public:
 			void push_node(Node*);
+			value::Value eval();
 			std::string to_string();
 	};
 
@@ -63,7 +55,9 @@ namespace ast {
 			std::string value;
 		public:
 			Ident(char*);
+			Ident(const char*);
 			Ident(std::string);
+			value::Value eval();
 			std::string to_string();
 	};
 
@@ -76,6 +70,7 @@ namespace ast {
 			Number(char*);
 			Number(long);
 			Number(double);
+			value::Value eval();
 			std::string to_string();
 	};
 }

@@ -25,6 +25,10 @@ Ident::Ident(char* val) {
 	value = std::string(val);
 }
 
+Ident::Ident(const char* val) {
+	value = std::string(val);
+}
+
 Ident::Ident(std::string v) {
 	value = v;
 }
@@ -33,3 +37,7 @@ std::string Ident::to_string() {
 	return value;
 }
 
+value::Value Ident::eval() {
+	value::Value v;
+	return v;
+}

@@ -17,6 +17,7 @@
  */
 
 #include <ast.hh>
+#include <value.hh>
 
 using namespace ast;
 
@@ -37,3 +38,11 @@ std::string List::to_string() {
 	os << ")";
 	return os.str();
 }
+
+
+value::Value List::eval() {
+	value::Value v;
+	return v;
+}
+
+

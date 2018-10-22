@@ -100,6 +100,7 @@ ast::List* Parser::parse_list() {
 		}
 		list->push_node(node);
 	}
+	requires(TOK_RPAREN);
 	// step forward after the last right paren in the list
 	next();
 	return list;

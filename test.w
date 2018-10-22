@@ -16,7 +16,7 @@
 ;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-(lambda (x) x)
+(setq id (lambda (x) x))
 
 (defun fact (x)
   (if (zerop x)

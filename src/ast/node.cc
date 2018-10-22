@@ -25,4 +25,8 @@ std::string Node::to_string() {
 	return NULL;
 }
 
+value::Value Node::eval() {
+	value::Value v;
+	return v;
+}
 
