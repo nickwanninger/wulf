@@ -18,6 +18,7 @@
  */
 
 #include <ast.hh>
+#include <limits>
 
 using namespace ast;
 
@@ -42,5 +43,8 @@ Number::Number() {
 
 
 std::string Number::to_string() {
-	return std::to_string(value);
+	std::ostringstream os;
+	os.precision(std::numeric_limits<double>::max_digits10);
+	os << value;
+	return os.str();
 }

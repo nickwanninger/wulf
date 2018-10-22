@@ -18,6 +18,10 @@ void State::eval(char* source) {
 		std::cout << "Evaluation Failed: " << msg << "\n";
 		return;
 	}
+
+	for (ast::Node* node : nodes) {
+		std::cout << node->to_string() << "\n";
+	}
 }
 
 std::vector<Token> State::lex(char* source) {

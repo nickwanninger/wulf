@@ -19,3 +19,5 @@
   (if (zerop x)
       1
       (* x (fact (- x 1)))))
+
+(print (fact 3.14159265358979))

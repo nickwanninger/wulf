@@ -62,14 +62,12 @@ Token Parser::reset() {
 
 std::vector<ast::Node*> Parser::parse_top_level() {
 	std::vector<ast::Node*> nodes;
-	tok_index = -1;
-
-	while (next().type != TOK_EOF) {
+	reset();
+	while (tok.type != TOK_EOF) {
 		ast::Node *node = parse_expr();
 		if (node == NULL) {
 			break;
 		}
-		std::cout << node->to_string() << "\n";
 		nodes.push_back(node);
 	}
 
@@ -94,6 +92,7 @@ ast::List* Parser::parse_list() {
 		ast::Node *node = parse_expr();
 		list->push_node(node);
 	}
+	requires(TOK_RPAREN);
 	// step forward after the last right paren in the list
 	next();
 	return list;
@@ -116,6 +115,8 @@ ast::Number* Parser::parse_number() {
 
 ast::Node* Parser::parse_expr() {
 	switch (tok.type) {
+		case TOK_EOF:
+			throw "unexpected EOF";
 		case TOK_LPAREN:
 			return parse_list();
 		case TOK_UNKNOWN:

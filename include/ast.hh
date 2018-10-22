@@ -23,17 +23,20 @@
 #include <string>
 #include <vector>
 #include <sstream>
-
+#include <iostream>
 namespace ast {
 
 	class Node {
 		public:
 			bool evaluated = false;
+
+			// simple print method
 			// virtual methods for a node
 			// all sub classes must implement these
 			// (kinda like an interface, I guess?)
 			virtual std::string to_string() = 0;
 	};
+
 
 	/*
 	 * a Program represents a program's parse state,
