@@ -18,7 +18,7 @@
  */
 
 #include <wulf.hh>
-
+#include <color.hh>
 std::mutex scanner_lock;
 
 /*
@@ -29,16 +29,24 @@ Scanner::Scanner(FILE* source) {
 }
 
 /*
+ * constructor for a scanner that can
+ * take a string instead
+ */
+Scanner::Scanner(char* source) {
+	FILE* memf = fmemopen(source, strlen(source), "r");
+	fp = memf;
+}
+
+/*
  * run method for scanner will rewind the file and scan the tokens from it
  * using flex under a mutex lock
  */
-std::vector<Token> *Scanner::run() {
+std::vector<Token> Scanner::run() {
 
 	// aquire the lock for the scanner c bindings
 	scanner_lock.lock();
 
-
-	std::vector<Token> *toks = new std::vector<Token>();
+	std::vector<Token> toks;
 	// rewind the file pointer to the start (jic)
 	rewind(fp);
 	// set the global yyin file pointer
@@ -49,7 +57,7 @@ std::vector<Token> *Scanner::run() {
 	// adding them to the vector
 	while ((ntok = yylex())) {
 		Token tok(ntok, strdup(yytext));
-		toks->push_back(tok);
+		toks.push_back(tok);
 	}
 
 	// release the scanner
@@ -60,6 +68,11 @@ std::vector<Token> *Scanner::run() {
 
 // Token implementation section
 Token::Token(int type, char* value) {
+
+	if (type == TOK_STRING) {
+		value = value + 1;
+		value[strlen(value)-1] = '\0';
+	}
 	this->type = type;
 	this->value = value;
 }
@@ -68,6 +81,6 @@ Token::~Token() {
 }
 
 std::ostream& operator<<(std::ostream& os, const Token& m) {
-	os << "(" << m.type << ", '" << m.value << "')";
+	os << "(" << KBLU << m.type << RST << ", " << KYEL << "'" << m.value << "'" << RST << ")";
 	return os;
 }

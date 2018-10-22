@@ -1,5 +1,4 @@
 /*
- * A compiler for the wulf language
  * Copyright (C) 2018  Nick Wanninger
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,9 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE
-#ifndef __WULF__
-#define __WULF__
+#ifndef __WULF_HH_
+#define __WULF_HH_
 
 #include <iostream>
 #include <stdio.h>
@@ -27,15 +25,23 @@
 #include <mutex>
 #include <vector>
 #include <strings.h>
+#include <sstream>
+#include <string>
 
+#include <value.hh>
 
 
 // -- scanner nonsense --
+
 extern std::mutex scanner_lock;
 extern int yylex();
 extern int yylineno;
 extern char* yytext;
 extern FILE* yyin;
+
+char* read_file_contents(char*);
+
+
 
 
 /*
@@ -60,15 +66,31 @@ private:
 	FILE* fp = NULL;
 public:
 	Scanner(FILE*);
-	std::vector<Token> *run();
+	Scanner(char*);
+	std::vector<Token> run();
 };
 
+
+
+class State {
+	int repl_index = 0;
+public:
+	void eval(char*);
+	void eval_file(char*);
+	void run_repl();
+	char* repl_readline();
+	std::vector<Token> lex(char* source);
+};
+
+
 #define TOK_UNKNOWN     1
-#define TOK_INTEGER     2
+#define TOK_NUMBER      2
 #define TOK_IDENTIFIER  3
 #define TOK_LPAREN      4
 #define TOK_RPAREN      5
 #define TOK_OPERATOR    6
+#define TOK_SYMBOL      7
+#define TOK_STRING      8
 // ~~ scanner nonsense ~~
 
 #endif

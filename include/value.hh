@@ -17,53 +17,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-%{
-// wulf lexer
+#ifndef __VALUE_HH__
+#define __VALUE_HH__
+
 #include <wulf.hh>
-#include <stdio.h>
-%}
+
+class value {
+public:
+	virtual std::string to_string();
+};
 
 
-%%
-
-\( {
-	return TOK_LPAREN;
-}
-
-\) {
-	return TOK_RPAREN;
-}
-
-
-[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
-}
-
--?([0-9]+([.][0-9]*)?|[.][0-9]+) {
-	return TOK_NUMBER;
-}
-
-[\d\+\-\*\/\.\-><]* {
-	return TOK_OPERATOR;
-}
-:[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
-}
-
-
-\"(\\.|[^"\\])*\" {
-	return TOK_STRING;
-}
-
-[ \t\n] ; // ignore whitespace
-";".*   ; // ignore comments
-. {
-	printf("Lex Error: Unknown token! '%s'\n", yytext);
-	return 0;
-}
-
-%%
-
-int yywrap(void) {
-	return 1;
-}
+#endif

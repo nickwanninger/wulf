@@ -21,31 +21,19 @@
 
 #define EXIT_FILE_ERROR 1
 
-
 int main(int argc, char** argv) {
+
+	State *state = new State();
 	int ntoken, vtoken;
 
-
 	if (argc <= 1) {
-		std::cout << "Usage: wulfc <file>\n";
-		exit(1);
+		state->run_repl();
+		exit(0);
 	}
 
+	// if there was a file argument, evaluate that instead
 	char* filepath = argv[1];
+	state->eval_file(filepath);
 
-
-	FILE* source = fopen(filepath, "r");
-	if (source == NULL) {
-		std::cout << "File \"" << filepath << "\" could not be found!\n";
-		exit(EXIT_FILE_ERROR);
-	}
-
-
-	Scanner *scanner = new Scanner(source);
-	std::vector<Token> *toks = scanner->run();
-	for (Token& tok : *toks) {
-		std::cout << tok << "\n";
-	}
-	delete toks;
 	return 0;
 }

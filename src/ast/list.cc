@@ -1,5 +1,4 @@
 /*
- * A compiler for the wulf language
  * Copyright (C) 2018  Nick Wanninger
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,53 +16,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-%{
-// wulf lexer
-#include <wulf.hh>
-#include <stdio.h>
-%}
+#include <ast.hh>
 
+using namespace ast;
 
-%%
-
-\( {
-	return TOK_LPAREN;
+void List::push_node(Node *n) {
+	args.push_back(n);
 }
 
-\) {
-	return TOK_RPAREN;
-}
+std::string List::to_string() {
+	std::ostringstream os;
+	os << "(";
 
-
-[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
-}
-
--?([0-9]+([.][0-9]*)?|[.][0-9]+) {
-	return TOK_NUMBER;
-}
-
-[\d\+\-\*\/\.\-><]* {
-	return TOK_OPERATOR;
-}
-:[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
-}
-
-
-\"(\\.|[^"\\])*\" {
-	return TOK_STRING;
-}
-
-[ \t\n] ; // ignore whitespace
-";".*   ; // ignore comments
-. {
-	printf("Lex Error: Unknown token! '%s'\n", yytext);
-	return 0;
-}
-
-%%
-
-int yywrap(void) {
-	return 1;
+	for (int i = 0; i < args.size(); i++) {
+		auto& arg = args[i];
+		os << arg->to_string();
+		os << " ";
+	}
+	os << ")";
+	return os.str();
 }
