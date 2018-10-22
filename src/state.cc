@@ -11,6 +11,7 @@ void State::eval(char* source) {
 	std::vector<Token> toks = lex(source);
 
 	Parser* parser = new Parser(toks);
+
 	std::vector<ast::Node*> nodes;
 	try {
 		nodes = parser->parse_top_level();
@@ -20,7 +21,7 @@ void State::eval(char* source) {
 	}
 
 	for (ast::Node* node : nodes) {
-		std::cout << node->to_string() << "\n";
+		std::cout << "top level: " << node->to_string() << "\n";
 	}
 }
 

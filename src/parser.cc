@@ -32,8 +32,11 @@ Parser::Parser(std::vector<Token> toks) {
 
 Token Parser::peek(int o) {
 	int target = tok_index + o;
-	if (target < 0 || target > tokens.size()) {
-		return Token(TOK_EOF, "EOF");
+	if (target < 0 || target > tokens.size()-1) {
+		Token t;
+		t.type = TOK_EOF;
+		t.value = strdup("EOF");
+		return t;
 	}
 	return tokens[target];
 }
@@ -59,7 +62,6 @@ Token Parser::reset() {
 }
 
 
-
 std::vector<ast::Node*> Parser::parse_top_level() {
 	std::vector<ast::Node*> nodes;
 	reset();
@@ -79,7 +81,6 @@ bool Parser::requires(int type) {
 	if (tok.type != type) {
 		throw "invalid token type found";
 	}
-
 	return true;
 }
 
@@ -89,10 +90,16 @@ ast::List* Parser::parse_list() {
 	// step along to the next token
 	next();
 	while (tok.type != TOK_RPAREN && tok.type) {
+		if (tok.type == TOK_EOF) {
+			throw "unexpected EOF";
+		}
 		ast::Node *node = parse_expr();
+		if (node == NULL) {
+			std::cout << "null thing\n";
+			break;
+		}
 		list->push_node(node);
 	}
-	requires(TOK_RPAREN);
 	// step forward after the last right paren in the list
 	next();
 	return list;
@@ -117,19 +124,20 @@ ast::Node* Parser::parse_expr() {
 	switch (tok.type) {
 		case TOK_EOF:
 			throw "unexpected EOF";
-		case TOK_LPAREN:
-			return parse_list();
 		case TOK_UNKNOWN:
+			throw "tok_unknown encountered";
 		case TOK_RPAREN:
 			throw "unexpected right paren";
+		case TOK_STRING:
+			throw "string is unimplemented";
+		case TOK_LPAREN:
+			return parse_list();
 		case TOK_NUMBER:
 			return parse_number();
 		case TOK_IDENTIFIER:
 			return parse_ident();
-		case TOK_STRING:
-			throw "string is unimplemented";
 		default:
-			break;
+			throw "unknown token";
 	}
 	return NULL;
 }

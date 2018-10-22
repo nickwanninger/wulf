@@ -34,7 +34,8 @@
 #include <parser.hh>
 #include <state.hh>
 #include <scanner.hh>
-// -- scanner nonsense --
+
+
 
 extern std::mutex scanner_lock;
 extern int yylex();
@@ -43,9 +44,6 @@ extern char* yytext;
 extern FILE* yyin;
 
 char* read_file_contents(char*);
-
-
-
 
 #define TOK_EOF         0
 #define TOK_UNKNOWN     1
@@ -56,6 +54,5 @@ char* read_file_contents(char*);
 #define TOK_OPERATOR    6
 #define TOK_SYMBOL      7
 #define TOK_STRING      8
-// ~~ scanner nonsense ~~
 
 #endif
