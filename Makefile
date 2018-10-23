@@ -3,7 +3,7 @@ CXX = clang++
 
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
 CFLAGS = -I./include
-CXXLDLIBS = -std=c++11 -lc -lreadline
+CXXLDLIBS = -std=c++11 -lc
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)
@@ -51,12 +51,15 @@ $(exe): $(CXXOBJFILES) $(COBJFILES)
 	@echo $(CSRCFILES)
 	@echo $(COBJFILES)
 	@printf " LD\t$@\n"
-	$(CXX) $(CXXLDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
+	@$(CXX) $(CXXLDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
 
 clean:
 	@rm -rf $(OBJDIR)
 	@rm -rf $(exe)
 	@rm -rf src/lex.yy.cc
+
+install:
+	install wulf /usr/local/bin
 
 gen: src/lex.yy.cc
 

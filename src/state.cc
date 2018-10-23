@@ -1,9 +1,8 @@
 #include <wulf.hh>
 #include <ast.hh>
 #include <color.hh>
-
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <fstream>
+#include <linenoise.h>
 
 
 void State::eval(char* source) {
@@ -21,7 +20,7 @@ void State::eval(char* source) {
 	}
 
 	for (ast::Node* node : nodes) {
-		std::cout << "top level: " << node->to_string() << "\n";
+		std::cout << ": " << node->to_string() << "\n";
 	}
 }
 
@@ -40,22 +39,28 @@ void State::eval_file(char* source) {
 	}
 }
 
+char* history_file() {
+	std::string buf;
+	buf += getenv("HOME");
+	buf += "/.wulf_history";
+	char* filename = const_cast<char*>(buf.c_str());
+
+	return filename;
+}
+
 void State::run_repl() {
-
-
 	std::string line;
+
 	char* buf;
 	while (true) {
 		buf = repl_readline();
 		if (buf == nullptr) break;
 
 		if (strlen(buf) > 0) {
-			add_history(buf);
-		} else {
-			free(buf);
-			continue;
+			linenoiseHistoryAdd(buf);
+			eval(buf);
 		}
-		eval(buf);
+		// free the buffer provided by linenoise
 		free(buf);
 	}
 }
@@ -63,16 +68,11 @@ void State::run_repl() {
 
 
 char* State::repl_readline() {
-	rl_bind_key('\t', rl_insert);
 	char* buf;
 	char prompt[40];
 	std::ostringstream os;
-	os << "\x1B[90m";
-	os << "\r  " << repl_index++ << "> ";
-	os << "\x1B[0m";
-
-
-	buf = readline(os.str().c_str());
+	os << "  " << repl_index++ << "> ";
+	buf = linenoise(os.str().c_str());
 	return buf;
 }
 
