@@ -17,9 +17,35 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <ast.hh>
+#include <value.hh>
 
-using namespace ast;
+using namespace value;
+
+std::string Value::to_string() {
+	return NULL;
+}
+
+
+
+void List::push(Value *n) {
+	args.push_back(n);
+}
+
+std::string List::to_string() {
+	std::ostringstream os;
+	os << "(";
+
+	for (int i = 0; i < args.size(); i++) {
+		auto& arg = args[i];
+		os << arg->to_string();
+		if (i < args.size()-1)
+			os << " ";
+	}
+	os << ")";
+	return os.str();
+}
+
+
 
 Ident::Ident(char* val) {
 	value = std::string(val);
@@ -37,7 +63,32 @@ std::string Ident::to_string() {
 	return value;
 }
 
-value::Value Ident::eval() {
-	value::Value v;
-	return v;
+
+
+
+Number::Number(char* val) {
+	value = std::atof(val);
 }
+
+
+Number::Number(long val) {
+	value = (double)val;
+}
+
+Number::Number(double val) {
+	value = val;
+}
+
+// default constructor (sets to zero)
+Number::Number() {
+	value = 0;
+}
+
+
+std::string Number::to_string() {
+	std::ostringstream os;
+	os.precision(10);
+	os << value;
+	return os.str();
+}
+

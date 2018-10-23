@@ -48,8 +48,6 @@ $(OBJDIR)/cc/%.o: $(addprefix $(SRCDIR)/,%.cc) ${includes}
 	@$(CXX) $(WARNINGS) $(CFLAGS) -c $< -o $@
 
 $(exe): $(CXXOBJFILES) $(COBJFILES)
-	@echo $(CSRCFILES)
-	@echo $(COBJFILES)
 	@printf " LD\t$@\n"
 	@$(CXX) $(CXXLDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
 

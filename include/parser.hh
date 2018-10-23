@@ -21,7 +21,8 @@
 #define __PARSER__HH__
 
 #include <scanner.hh>
-#include <ast.hh>
+#include <value.hh>
+
 class Parser {
 	private:
 		std::vector<Token> tokens;
@@ -58,12 +59,12 @@ class Parser {
 		/*
 		 * parse the top level nodes of a set of tokens
 		 */
-		std::vector<ast::Node*> parse_top_level();
-		ast::List* parse_list();
-		ast::List* parse_quote();
-		ast::Ident* parse_ident();
-		ast::Node* parse_expr();
-		ast::Number* parse_number();
+		std::vector<value::Value*> parse_top_level();
+		value::List* parse_list();
+		value::List* parse_quote();
+		value::Ident* parse_ident();
+		value::Value* parse_expr();
+		value::Number* parse_number();
 };
 
 #endif

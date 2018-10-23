@@ -21,19 +21,55 @@
 #define __VALUE_HH__
 
 #include <string>
+#include <vector>
+#include <sstream>
+#include <iostream>
 
 namespace value {
-	/*
-	 * Value is a class that other classes will
-	 * extend. When they do such, the derived classes
-	 * will be wulf value types. (ie: Number, String, List)
-	 */
+
 	class Value {
-	public:
-		virtual std::string to_string();
+		public:
+			bool evaluated = false;
+			// simple print method
+			// virtual methods for a node
+			// all sub classes must implement these
+			// (kinda like an interface, I guess?)
+			virtual std::string to_string() = 0;
 	};
 
-}
 
+
+	class List : public Value {
+		private:
+			std::vector<Value*> args;
+		public:
+			void push(Value*);
+			std::string to_string();
+	};
+
+
+
+	class Ident : public Value {
+		private:
+			std::string value;
+		public:
+			Ident(char*);
+			Ident(const char*);
+			Ident(std::string);
+			std::string to_string();
+	};
+
+
+	class Number : public Value {
+		private:
+			double value;
+		public:
+			Number();
+			Number(char*);
+			Number(long);
+			Number(double);
+			std::string to_string();
+	};
+}
 
 #endif

@@ -62,11 +62,11 @@ Token Parser::reset() {
 }
 
 
-std::vector<ast::Node*> Parser::parse_top_level() {
-	std::vector<ast::Node*> nodes;
+std::vector<value::Value*> Parser::parse_top_level() {
+	std::vector<value::Value*> nodes;
 	reset();
 	while (tok.type != TOK_EOF) {
-		ast::Node *node = parse_expr();
+		value::Value *node = parse_expr();
 		if (node == NULL) {
 			break;
 		}
@@ -84,8 +84,8 @@ bool Parser::requires(int type) {
 	return true;
 }
 
-ast::List* Parser::parse_list() {
-	ast::List *list = new ast::List();
+value::List* Parser::parse_list() {
+	value::List *list = new value::List();
 	requires(TOK_LPAREN);
 	// step along to the next token
 	next();
@@ -93,12 +93,12 @@ ast::List* Parser::parse_list() {
 		if (tok.type == TOK_EOF) {
 			throw "unexpected EOF";
 		}
-		ast::Node *node = parse_expr();
+		value::Value *node = parse_expr();
 		if (node == NULL) {
 			std::cout << "null thing\n";
 			break;
 		}
-		list->push_node(node);
+		list->push(node);
 	}
 
 	if (tok.type != TOK_RPAREN) {
@@ -110,31 +110,31 @@ ast::List* Parser::parse_list() {
 }
 
 
-ast::List* Parser::parse_quote() {
+value::List* Parser::parse_quote() {
 	requires(TOK_QUOTE);
-	ast::List *list = new ast::List();
-	list->push_node(new ast::Ident("quote"));
+	value::List *list = new value::List();
+	list->push(new value::Ident("quote"));
 	next();
-	list->push_node(parse_expr());
+	list->push(parse_expr());
 	return list;
 }
 
-ast::Ident* Parser::parse_ident() {
+value::Ident* Parser::parse_ident() {
 	requires(TOK_IDENTIFIER);
-	ast::Ident *ident = new ast::Ident(tok.value);
+	value::Ident *ident = new value::Ident(tok.value);
 	next();
 	return ident;
 }
 
-ast::Number* Parser::parse_number() {
+value::Number* Parser::parse_number() {
 	requires(TOK_NUMBER);
-	ast::Number *num = new ast::Number(tok.value);
+	value::Number *num = new value::Number(tok.value);
 	next();
 	return num;
 }
 
 
-ast::Node* Parser::parse_expr() {
+value::Value* Parser::parse_expr() {
 	switch (tok.type) {
 		case TOK_EOF:
 			throw "unexpected EOF";
@@ -154,7 +154,7 @@ ast::Node* Parser::parse_expr() {
 			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
 	}
 	next();
-	return new ast::Ident("nil");
+	return new value::Ident("nil");
 }
 
 

@@ -1,5 +1,5 @@
 #include <wulf.hh>
-#include <ast.hh>
+#include <value.hh>
 #include <color.hh>
 #include <fstream>
 #include <linenoise.h>
@@ -11,7 +11,7 @@ void State::eval(char* source) {
 
 	Parser* parser = new Parser(toks);
 
-	std::vector<ast::Node*> nodes;
+	std::vector<value::Value*> nodes;
 	try {
 		nodes = parser->parse_top_level();
 	} catch (const char* msg) {
@@ -19,7 +19,7 @@ void State::eval(char* source) {
 		return;
 	}
 
-	for (ast::Node* node : nodes) {
+	for (value::Value* node : nodes) {
 		std::cout << ": " << node->to_string() << "\n";
 	}
 }
@@ -39,14 +39,6 @@ void State::eval_file(char* source) {
 	}
 }
 
-char* history_file() {
-	std::string buf;
-	buf += getenv("HOME");
-	buf += "/.wulf_history";
-	char* filename = const_cast<char*>(buf.c_str());
-
-	return filename;
-}
 
 void State::run_repl() {
 	std::string line;
