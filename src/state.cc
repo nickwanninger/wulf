@@ -30,6 +30,7 @@ std::vector<Token> State::lex(char* source) {
 	return scanner->run();
 }
 
+
 void State::eval_file(char* source) {
 	try {
 		char* contents = read_file_contents(source);
@@ -40,9 +41,14 @@ void State::eval_file(char* source) {
 }
 
 void State::run_repl() {
+
+
 	std::string line;
 	char* buf;
-	while ((buf = repl_readline()) != nullptr) {
+	while (true) {
+		buf = repl_readline();
+		if (buf == nullptr) break;
+
 		if (strlen(buf) > 0) {
 			add_history(buf);
 		} else {
@@ -54,12 +60,17 @@ void State::run_repl() {
 	}
 }
 
+
+
 char* State::repl_readline() {
 	rl_bind_key('\t', rl_insert);
 	char* buf;
 	char prompt[40];
 	std::ostringstream os;
-	os << "[" << repl_index++ << "]: ";
+	os << "\x1B[90m";
+	os << "\r  " << repl_index++ << "> ";
+	os << "\x1B[0m";
+
 
 	buf = readline(os.str().c_str());
 	return buf;

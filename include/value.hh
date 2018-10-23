@@ -30,15 +30,6 @@ namespace value {
 	 */
 	class Value {
 	public:
-
-		Value();
-		virtual Value operator+(const Value&) const;
-		virtual Value operator-(const Value&) const;
-		virtual Value operator*(const Value&) const;
-		virtual Value operator/(const Value&) const;
-		virtual Value operator>(const Value&) const;
-		virtual Value operator<(const Value&) const;
-
 		virtual std::string to_string();
 	};
 

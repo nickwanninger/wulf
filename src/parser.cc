@@ -100,9 +100,22 @@ ast::List* Parser::parse_list() {
 		}
 		list->push_node(node);
 	}
-	requires(TOK_RPAREN);
+
+	if (tok.type != TOK_RPAREN) {
+		throw "missing closing paren!";
+	}
 	// step forward after the last right paren in the list
 	next();
+	return list;
+}
+
+
+ast::List* Parser::parse_quote() {
+	requires(TOK_QUOTE);
+	ast::List *list = new ast::List();
+	list->push_node(new ast::Ident("quote"));
+	next();
+	list->push_node(parse_expr());
 	return list;
 }
 
@@ -125,22 +138,23 @@ ast::Node* Parser::parse_expr() {
 	switch (tok.type) {
 		case TOK_EOF:
 			throw "unexpected EOF";
-		case TOK_UNKNOWN:
-			throw "tok_unknown encountered";
 		case TOK_RPAREN:
 			throw "unexpected right paren";
-		case TOK_STRING:
-			throw "string is unimplemented";
 		case TOK_LPAREN:
 			return parse_list();
 		case TOK_NUMBER:
 			return parse_number();
 		case TOK_IDENTIFIER:
 			return parse_ident();
-		default:
-			throw "unknown token";
+		case TOK_QUOTE:
+			return parse_quote();
+		case TOK_UNKNOWN:
+		case TOK_STRING:
+		case TOK_SYMBOL:
+			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
 	}
-	return NULL;
+	next();
+	return new ast::Ident("nil");
 }
 
 

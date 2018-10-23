@@ -20,15 +20,35 @@
 #include <wulf.hh>
 
 #define EXIT_FILE_ERROR 1
+#define STDIN_READ_SIZE 100
+
+
 
 int main(int argc, char** argv) {
+
+
 
 
 	State *state = new State();
 	int ntoken, vtoken;
 
 	if (argc <= 1) {
-		state->run_repl();
+
+
+		if (isatty(fileno(stdin))) {
+			state->run_repl();
+			std::cout << "\ngoodbye!\n";
+		} else {
+
+			std::string contents;
+
+			char buffer[STDIN_READ_SIZE];
+			while (fgets(buffer, STDIN_READ_SIZE, stdin)) {
+				contents += buffer;
+			}
+			state->eval(const_cast<char*>(contents.c_str()));
+		}
+
 		exit(0);
 	}
 
@@ -38,3 +58,5 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+

@@ -1,7 +1,9 @@
+CC = clang
 CXX = clang++
+
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
 CFLAGS = -I./include
-LDLIBS = -std=c++11 -lc -lreadline
+CXXLDLIBS = -std=c++11 -lc -lreadline
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)
@@ -13,10 +15,14 @@ OBJDIR = build
 
 SOURCEFILES := $(addsuffix /*,$(shell find $(SRCDIR) -type d))
 CODEFILES := $(wildcard $(SOURCEFILES))
-SRCFILES := $(filter %.cc,$(CODEFILES))
-OBJFILES := $(subst $(SRCDIR),$(OBJDIR),$(SRCFILES:%.cc=%.o))
-# add the lex file to the object file targets
-OBJFILES += build/lex.yy.o
+
+CXXSRCFILES := $(filter %.cc,$(CODEFILES))
+CXXOBJFILES := $(subst $(SRCDIR),$(OBJDIR)/cc,$(CXXSRCFILES:%.cc=%.o))
+CXXOBJFILES += build/cc/lex.yy.o
+
+
+CSRCFILES := $(filter %.c,$(CODEFILES))
+COBJFILES := $(subst $(SRCDIR),$(OBJDIR)/c,$(CSRCFILES:%.c=%.o))
 
 
 .PHONY: all clean gen
@@ -30,20 +36,27 @@ all: $(OBJDIR) $(exe)
 $(OBJDIR):
 	@mkdir -p $@
 
-$(OBJDIR)/%.o: $(addprefix $(SRCDIR)/,%.cc) ${includes}
+$(OBJDIR)/c/%.o: $(addprefix $(SRCDIR)/,%.c) ${includes}
 	@printf " CC\t$@\n"
+	@mkdir -p $(dir $@)
+	@$(CC) $(WARNINGS) $(CFLAGS) -c $< -o $@
+
+
+$(OBJDIR)/cc/%.o: $(addprefix $(SRCDIR)/,%.cc) ${includes}
+	@printf " CXX\t$@\n"
 	@mkdir -p $(dir $@)
 	@$(CXX) $(WARNINGS) $(CFLAGS) -c $< -o $@
 
-$(exe): $(OBJFILES)
+$(exe): $(CXXOBJFILES) $(COBJFILES)
+	@echo $(CSRCFILES)
+	@echo $(COBJFILES)
 	@printf " LD\t$@\n"
-	@$(CXX) $(LDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
+	$(CXX) $(CXXLDLIBS) $(WARNINGS) -o $@ $(foreach i,$^,$(i) )
 
 clean:
+	@rm -rf $(OBJDIR)
 	@rm -rf $(exe)
 	@rm -rf src/lex.yy.cc
-	@rm -rf $(OBJDIR)/*.o
-	@rm -rf $(OBJDIR)/render/*.o
 
 gen: src/lex.yy.cc
 

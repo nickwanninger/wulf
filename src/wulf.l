@@ -35,6 +35,10 @@
 }
 
 
+:[a-zA-Z][_a-zA-Z0-9\-\/\.:\?]* {
+	return TOK_SYMBOL;
+}
+
 [a-zA-Z][_a-zA-Z0-9\-\/\.:\?]* {
 	return TOK_IDENTIFIER;
 }
@@ -44,24 +48,25 @@
 	return TOK_NUMBER;
 }
 
-[\d\+\-\*\/\.\-><]* {
+[\d\+\-\*\/\.\-><=]* {
 	return TOK_IDENTIFIER;
 }
 
-:[a-zA-Z][_a-zA-Z0-9\-\/\.]* {
-	return TOK_SYMBOL;
-}
 
 
 \"(\\.|[^"\\])*\" {
 	return TOK_STRING;
 }
 
+' {
+	return TOK_QUOTE;
+}
+
 [ \t\n] ; // ignore whitespace
 ";".*   ; // ignore comments
 . {
 	printf("Lex Error: Unknown token! '%s'\n", yytext);
-	return 0;
+	return TOK_UNKNOWN;
 }
 
 %%

@@ -2,4 +2,6 @@
 
 using namespace value;
 
-Value::Value() {}
+std::string Value::to_string() {
+	return NULL;
+}

@@ -28,6 +28,7 @@
 #include <vector>
 #include <strings.h>
 #include <sstream>
+#include <unistd.h>
 #include <string>
 
 #include <value.hh>
@@ -44,6 +45,7 @@ extern char* yytext;
 extern FILE* yyin;
 
 char* read_file_contents(char*);
+char* read_file_contents(FILE* f);
 
 #define TOK_EOF         0
 #define TOK_UNKNOWN     1
@@ -54,5 +56,5 @@ char* read_file_contents(char*);
 #define TOK_OPERATOR    6
 #define TOK_SYMBOL      7
 #define TOK_STRING      8
-
+#define TOK_QUOTE       9
 #endif

@@ -3,6 +3,11 @@
 
 char* read_file_contents(char* filename) {
 	FILE* f = fopen(filename, "r");
+	return read_file_contents(f);
+}
+
+
+char* read_file_contents(FILE* f) {
 	if (f == NULL) {
 		throw "file not found";
 	}

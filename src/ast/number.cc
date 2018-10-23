@@ -44,7 +44,7 @@ Number::Number() {
 
 std::string Number::to_string() {
 	std::ostringstream os;
-	os.precision(std::numeric_limits<double>::max_digits10);
+	os.precision(10);
 	os << value;
 	return os.str();
 }

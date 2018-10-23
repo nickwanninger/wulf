@@ -16,11 +16,10 @@
 ;; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-(setq id (lambda (x) x))
-
 (defun fact (x)
-  (if (zerop x)
+  (if (= x 0)
       1
       (* x (fact (- x 1)))))
+
 
 (print (fact 3.14159265358979))

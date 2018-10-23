@@ -60,6 +60,7 @@ class Parser {
 		 */
 		std::vector<ast::Node*> parse_top_level();
 		ast::List* parse_list();
+		ast::List* parse_quote();
 		ast::Ident* parse_ident();
 		ast::Node* parse_expr();
 		ast::Number* parse_number();
