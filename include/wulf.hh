@@ -31,6 +31,9 @@
 #include <unistd.h>
 #include <string>
 
+#define NSCLASS(ns, name) namespace ns { class name; };
+
+
 //#include <value.hh>
 //#include <parser.hh>
 //#include <state.hh>

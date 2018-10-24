@@ -19,6 +19,7 @@
 #ifndef __VALUE_HH
 #define __VALUE_HH
 
+#include <wulf.hh>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -26,9 +27,7 @@
 #include <scope.hh>
 #include <state.hh>
 
-namespace scope {
-	class Scope;
-}
+NSCLASS(scope, Scope)
 
 namespace value {
 

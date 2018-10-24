@@ -1,13 +1,11 @@
 #ifndef __SCOPE_HH
 #define __SCOPE_HH
 
+#include <wulf.hh>
 #include <map>
 #include <value.hh>
 
-namespace value {
-	class Value;
-}
-
+NSCLASS(value, Value)
 
 namespace scope {
 	class Scope {

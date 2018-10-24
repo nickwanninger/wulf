@@ -1,18 +1,14 @@
 #ifndef __STATE_HH
 #define __STATE_HH
 
+#include <wulf.hh>
 #include <vector>
 #include <scanner.hh>
 #include <scope.hh>
 
 
-namespace scope {
-	class Scope;
-}
-
-namespace value {
-	class Value;
-}
+NSCLASS(scope, Scope)
+NSCLASS(value, Value)
 
 class State {
 	int repl_index = 0;
