@@ -18,22 +18,57 @@
  */
 
 #include <wulf.hh>
+#include <state.hh>
+#include <map>
 #include <scope.hh>
+#include <thread>
+#include <value.hh>
+#include <gc/gc.h>
 
+// #include <gc/gc_cpp.h>
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
 
+static void xfinalizer(GC_PTR obj, GC_PTR x) {
+	// printf("%p collected\n", obj);
+}
 
+void* xmalloc(size_t size) {
+	void* ptr = GC_MALLOC(size);
+	GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
+	return ptr;
+}
+
+void* operator new(size_t size) {
+	return xmalloc(size);
+}
+void* operator new[](size_t size) {
+	return xmalloc(size);
+}
+void operator delete(void* ptr) _NOEXCEPT {
+	GC_FREE(ptr);
+}
+void operator delete[](void* ptr) _NOEXCEPT {
+	GC_FREE(ptr);
+}
+
+
+
+void gc_thread() {
+	while (true) {
+		sleep(1);
+		GC_gcollect();
+	}
+}
 
 int main(int argc, char** argv) {
+	//std::thread gcthread(gc_thread);
+	GC_init();
+	GC_enable_incremental();
 
-
-	State *state = new State();
-	int ntoken, vtoken;
+	auto *state = new State();
 
 	if (argc <= 1) {
-
-
 		if (isatty(fileno(stdin))) {
 			state->run_repl();
 		} else {
@@ -44,13 +79,17 @@ int main(int argc, char** argv) {
 			}
 			state->eval(const_cast<char*>(contents.c_str()));
 		}
-
+		delete state;
 		exit(0);
 	}
-
 	// if there was a file argument, evaluate that instead
 	char* filepath = argv[1];
 	state->eval_file(filepath);
+
+	GC_gcollect();
+
+
+	delete state;
 
 	return 0;
 }

@@ -64,8 +64,8 @@
 
 [ \t\n] ; // ignore whitespace
 ";".*   ; // ignore comments
+
 . {
-	printf("Lex Error: Unknown token! '%s'\n", yytext);
 	return TOK_UNKNOWN;
 }
 

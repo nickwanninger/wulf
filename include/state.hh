@@ -11,6 +11,7 @@ NSCLASS(scope, Scope)
 NSCLASS(value, Value)
 
 class State {
+	bool repl = false;
 	int repl_index = 0;
 public:
 	/*

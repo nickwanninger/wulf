@@ -7,12 +7,12 @@
 
 
 void State::eval(char* source) {
-
-	std::vector<Token> toks = lex(source);
-
-	Parser* parser = new Parser(toks);
+	// lex the tokens from the source
+	auto toks = lex(source);
+	auto parser = new Parser(toks);
 
 	std::vector<value::Value*> nodes;
+
 	try {
 		nodes = parser->parse_top_level();
 	} catch (const char* msg) {
@@ -20,9 +20,19 @@ void State::eval(char* source) {
 		return;
 	}
 
-	for (value::Value* node : nodes) {
-		std::cout << node->to_string() << "\n";
+
+	for (auto* node : nodes) {
+		auto res = node->eval(this, scope);
+		if (repl) {
+			if (res != NULL) {
+				std::cout << res->to_string() << "\n";
+			} else {
+				std::cout << "nil" << "\n";
+			}
+		}
 	}
+
+	delete parser;
 }
 
 std::vector<Token> State::lex(char* source) {
@@ -43,7 +53,8 @@ void State::eval_file(char* source) {
 
 void State::run_repl() {
 	std::string line;
-
+	linenoiseSetMultiLine(1);
+	repl = true;
 	char* buf;
 	while (true) {
 		buf = linenoise("> ");

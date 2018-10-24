@@ -19,7 +19,6 @@ Scope::Scope(Scope* p) {
 	root = parent->root;
 }
 
-
 /*
  * spawn a child scope and return it
  */
@@ -35,7 +34,7 @@ value::Value* Scope::find(std::string name) {
 	// attempt to read the binding from this scope's local map
 	auto* found = bindings[name];
 	if (found != NULL) {
-		return found;
+		return found->val;
 	}
 	// the variable wasn't in this scope, we need to check the parent one
 	// if it exists
@@ -52,9 +51,16 @@ value::Value* Scope::find(std::string name) {
  * set a binding in the current scope
  */
 void Scope::set(std::string name, value::Value* val) {
-	bindings[name] = val;
+	auto bind = new Binding(val);
+	bindings[name] = bind;
 }
 
 
-
+Binding::Binding(value::Value* v) {
+	val = v;
+}
+// default constructor will bind nil to everything
+Binding::Binding() {
+	Binding(new value::Nil());
+}
 

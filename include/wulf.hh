@@ -19,6 +19,8 @@
 #ifndef __WULF_HH
 #define __WULF_HH
 
+
+
 #include <iostream>
 #include <stdio.h>
 #include <cstdlib>
@@ -33,13 +35,10 @@
 
 #define NSCLASS(ns, name) namespace ns { class name; };
 
-
 //#include <value.hh>
 //#include <parser.hh>
 //#include <state.hh>
 //#include <scanner.hh>
-
-
 
 extern std::mutex scanner_lock;
 extern int yylex();

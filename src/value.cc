@@ -55,6 +55,16 @@ std::string List::to_string() {
 }
 
 Value* List::eval(State* st, scope::Scope* sc) {
+	if (args.size() == 0) {
+		return new Nil();
+	}
+	/*
+	 * ope
+	 *   -rator
+	 *   -rand
+	 */
+	auto rator = args[0];
+	auto rand = NULL;
 	return NULL;
 }
 
