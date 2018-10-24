@@ -3,6 +3,7 @@
 #include <color.hh>
 #include <fstream>
 #include <linenoise.h>
+#include <parser.hh>
 
 
 void State::eval(char* source) {
@@ -20,7 +21,7 @@ void State::eval(char* source) {
 	}
 
 	for (value::Value* node : nodes) {
-		std::cout << ": " << node->to_string() << "\n";
+		std::cout << node->to_string() << "\n";
 	}
 }
 
@@ -45,7 +46,7 @@ void State::run_repl() {
 
 	char* buf;
 	while (true) {
-		buf = repl_readline();
+		buf = linenoise("> ");
 		if (buf == nullptr) break;
 
 		if (strlen(buf) > 0) {
@@ -58,13 +59,4 @@ void State::run_repl() {
 }
 
 
-
-char* State::repl_readline() {
-	char* buf;
-	char prompt[40];
-	std::ostringstream os;
-	os << "  " << repl_index++ << "> ";
-	buf = linenoise(os.str().c_str());
-	return buf;
-}
 

@@ -1,5 +1,4 @@
 /*
- * A compiler for the wulf language
  * Copyright (C) 2018  Nick Wanninger
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,24 +16,39 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __VALUE_HH__
-#define __VALUE_HH__
+#ifndef __VALUE_HH
+#define __VALUE_HH
 
 #include <string>
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <scope.hh>
+#include <state.hh>
+
+namespace scope {
+	class Scope;
+}
 
 namespace value {
 
+	enum Type {
+		unknown,
+		list,
+		ident,
+		number,
+		nil,
+	};
+
 	class Value {
 		public:
-			bool evaluated = false;
+			Type type = unknown;
 			// simple print method
 			// virtual methods for a node
 			// all sub classes must implement these
 			// (kinda like an interface, I guess?)
 			virtual std::string to_string() = 0;
+			virtual Value* eval(State*, scope::Scope*);
 	};
 
 
@@ -43,8 +57,11 @@ namespace value {
 		private:
 			std::vector<Value*> args;
 		public:
+			Type type = list;
 			void push(Value*);
+			Value *operator[](const int index);
 			std::string to_string();
+			Value* eval(State*, scope::Scope*);
 	};
 
 
@@ -53,23 +70,37 @@ namespace value {
 		private:
 			std::string value;
 		public:
+			Type type = ident;
 			Ident(char*);
 			Ident(const char*);
 			Ident(std::string);
 			std::string to_string();
+			Value* eval(State*, scope::Scope*);
 	};
+
 
 
 	class Number : public Value {
 		private:
 			double value;
 		public:
+			Type type = number;
 			Number();
 			Number(char*);
 			Number(long);
 			Number(double);
 			std::string to_string();
+			Value* eval(State*, scope::Scope*);
+	};
+
+	class Nil : public Value {
+		public:
+			Type type = nil;
+			Nil();
+			std::string to_string();
+			Value* eval(State*, scope::Scope*);
 	};
 }
+
 
 #endif

@@ -26,9 +26,18 @@ std::string Value::to_string() {
 }
 
 
+Value* Value::eval(State* st, scope::Scope* sc) {
+	return new Nil();
+}
+
+// ---------------- List ----------------
 
 void List::push(Value *n) {
 	args.push_back(n);
+}
+
+Value *List::operator[](const int index) {
+	return args[index];
 }
 
 std::string List::to_string() {
@@ -45,7 +54,12 @@ std::string List::to_string() {
 	return os.str();
 }
 
+Value* List::eval(State* st, scope::Scope* sc) {
+	return NULL;
+}
 
+
+// ---------------- Ident ----------------
 
 Ident::Ident(char* val) {
 	value = std::string(val);
@@ -59,31 +73,53 @@ Ident::Ident(std::string v) {
 	value = v;
 }
 
+
 std::string Ident::to_string() {
 	return value;
 }
 
+Value* Ident::eval(State* st, scope::Scope* sc) {
+	return NULL;
+}
 
 
+// ---------------- Number ----------------
 
+/*
+ * overloaded number constructor that
+ * parses a string value
+ */
 Number::Number(char* val) {
 	value = std::atof(val);
 }
 
-
+/*
+ * overloaded Number constructor that
+ * takes a long
+ */
 Number::Number(long val) {
 	value = (double)val;
 }
 
+/*
+ * overloaded Number constructor that
+ * takes a double
+ */
 Number::Number(double val) {
 	value = val;
 }
 
-// default constructor (sets to zero)
+/*
+ * default Number constructor
+ */
 Number::Number() {
 	value = 0;
 }
 
+// numbers always evaluate to themselves
+Value* Number::eval(State* st, scope::Scope* sc) {
+	return this;
+}
 
 std::string Number::to_string() {
 	std::ostringstream os;
@@ -91,4 +127,19 @@ std::string Number::to_string() {
 	os << value;
 	return os.str();
 }
+
+
+// ---------------- Nil ----------------
+
+Nil::Nil() {}
+
+std::string Nil::to_string() {
+	return std::string("nil");
+}
+
+// nil just evaulates to itself, always
+value::Value* Nil::eval(State* st, scope::Scope* sc) {
+	return this;
+}
+
 

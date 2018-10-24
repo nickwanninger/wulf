@@ -18,6 +18,7 @@
  */
 
 #include <wulf.hh>
+#include <scope.hh>
 
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
@@ -25,8 +26,6 @@
 
 
 int main(int argc, char** argv) {
-
-
 
 
 	State *state = new State();
@@ -37,11 +36,8 @@ int main(int argc, char** argv) {
 
 		if (isatty(fileno(stdin))) {
 			state->run_repl();
-			std::cout << "\ngoodbye!\n";
 		} else {
-
 			std::string contents;
-
 			char buffer[STDIN_READ_SIZE];
 			while (fgets(buffer, STDIN_READ_SIZE, stdin)) {
 				contents += buffer;

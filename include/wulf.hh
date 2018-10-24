@@ -16,8 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __WULF_HH_
-#define __WULF_HH_
+#ifndef __WULF_HH
+#define __WULF_HH
 
 #include <iostream>
 #include <stdio.h>
@@ -31,10 +31,10 @@
 #include <unistd.h>
 #include <string>
 
-#include <value.hh>
-#include <parser.hh>
-#include <state.hh>
-#include <scanner.hh>
+//#include <value.hh>
+//#include <parser.hh>
+//#include <state.hh>
+//#include <scanner.hh>
 
 
 
@@ -57,4 +57,5 @@ char* read_file_contents(FILE* f);
 #define TOK_SYMBOL      7
 #define TOK_STRING      8
 #define TOK_QUOTE       9
+
 #endif

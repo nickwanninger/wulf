@@ -1,18 +1,44 @@
-#ifndef __STATE__
-#define __STATE__
+#ifndef __STATE_HH
+#define __STATE_HH
 
 #include <vector>
 #include <scanner.hh>
+#include <scope.hh>
+
+
+namespace scope {
+	class Scope;
+}
+
+namespace value {
+	class Value;
+}
 
 class State {
 	int repl_index = 0;
 public:
+	/*
+	 * a state must have a root scope, which defaults
+	 * to having no parent
+	 */
+	scope::Scope* scope = NULL;
+
+	/*
+	 * evalueate various source into the scope
+	 */
 	void eval(char*);
 	void eval_file(char*);
+
+	/*
+	 * start the repl for the user to insert wulf code
+	 */
 	void run_repl();
-	char* repl_readline();
+
+	/*
+	 * lex tokens out of a char*
+	 */
 	std::vector<Token> lex(char* source);
 };
 
-
 #endif
+

@@ -19,6 +19,7 @@
 
 #include <wulf.hh>
 #include <color.hh>
+#include <scanner.hh>
 
 std::mutex scanner_lock;
 

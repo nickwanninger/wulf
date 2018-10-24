@@ -20,9 +20,8 @@
 
 #include <wulf.hh>
 #include <scanner.hh>
+#include <parser.hh>
 
-
-#define DEBUG
 
 Parser::Parser(std::vector<Token> toks) {
 	tokens = toks;

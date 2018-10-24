@@ -17,8 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __PARSER__HH__
-#define __PARSER__HH__
+
+#ifndef __PARSER_HH
+#define __PARSER_HH
+
 
 #include <scanner.hh>
 #include <value.hh>
@@ -66,5 +68,6 @@ class Parser {
 		value::Value* parse_expr();
 		value::Number* parse_number();
 };
+
 
 #endif

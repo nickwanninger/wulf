@@ -1,6 +1,5 @@
-#ifndef __SCANNER__
-#define __SCANNER__
-
+#ifndef __SCANNER_HH
+#define __SCANNER_HH
 
 #include <iostream>
 #include <vector>
