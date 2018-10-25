@@ -45,6 +45,10 @@ void* operator new(size_t size) {
 void* operator new[](size_t size) {
 	return xmalloc(size);
 }
+
+#ifdef __GLIBC__
+#define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
+#endif
 void operator delete(void* ptr) _NOEXCEPT {
 	GC_FREE(ptr);
 }

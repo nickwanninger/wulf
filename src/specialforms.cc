@@ -1,6 +1,8 @@
 #include <specialforms.hh>
 #include <value.hh>
 #include <math.h>
+#include <functional>
+
 using namespace specialform;
 
 
