@@ -22,6 +22,8 @@ NSCLASS(value, Value)
 			private:
 				std::map<std::string, Binding*> bindings;
 			public:
+
+				int index = 0;
 				/*
 				 * a scope can have a parent.
 				 */
@@ -41,7 +43,8 @@ NSCLASS(value, Value)
 				void set(std::string, value::Value*);
 				void set(const char*, value::Value*);
 				void set(const char* name, specialformfn);
-				void install_special_forms();
+				void set(const char*, double);
+				void install_default_bindings();
 		};
 	}
 

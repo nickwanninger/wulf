@@ -60,9 +60,8 @@ namespace value {
 
 
 	class List : public Value {
-		private:
-			valuelist args;
 		public:
+			valuelist args;
 			Type type = list;
 			void push(Value*);
 			Value *operator[](const int index);
@@ -83,8 +82,6 @@ namespace value {
 			std::string to_string();
 			Value* eval(State*, scope::Scope*);
 	};
-
-
 
 	class Number : public Value {
 		public:
@@ -112,9 +109,9 @@ namespace value {
 		bool is_special_form = false;
 		public:
 			Procedure(specialformfn);
-			Procedure(stringlist, List*);
+			Procedure(stringlist, Value*);
 			stringlist args;
-			List* body;
+			Value* body;
 			Type type = procedure;
 			std::string to_string();
 			Value* apply(State*, scope::Scope*, valuelist);

@@ -8,7 +8,7 @@
 
 State::State() {
 	scope = new scope::Scope();
-	scope->install_special_forms();
+	scope->install_default_bindings();
 }
 
 void State::eval(char* source) {

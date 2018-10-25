@@ -30,12 +30,12 @@
 #define STDIN_READ_SIZE 100
 
 static void xfinalizer(GC_PTR obj, GC_PTR x) {
-	// printf("%p collected\n", obj);
+	printf("%p collected\n", obj);
 }
 
 void* xmalloc(size_t size) {
 	void* ptr = GC_MALLOC(size);
-	GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
+	// GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
 	return ptr;
 }
 

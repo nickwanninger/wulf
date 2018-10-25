@@ -17,6 +17,12 @@ namespace specialform {
 	SPECIALFORM(sub);
 	SPECIALFORM(mul);
 	SPECIALFORM(div);
+	SPECIALFORM(pow);
+	SPECIALFORM(print);
+	SPECIALFORM(quote);
+	SPECIALFORM(eval);
+	SPECIALFORM(load);
+	SPECIALFORM(lambda);
 }
 
 #endif
