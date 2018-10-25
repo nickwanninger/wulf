@@ -6,6 +6,11 @@
 #include <parser.hh>
 
 
+State::State() {
+	scope = new scope::Scope();
+	scope->install_special_forms();
+}
+
 void State::eval(char* source) {
 	// lex the tokens from the source
 	auto toks = lex(source);
@@ -21,17 +26,20 @@ void State::eval(char* source) {
 	}
 
 
-	for (auto* node : nodes) {
-		auto res = node->eval(this, scope);
-		if (repl) {
-			if (res != NULL) {
-				std::cout << res->to_string() << "\n";
-			} else {
-				std::cout << "nil" << "\n";
+	try {
+		for (auto* node : nodes) {
+			auto res = node->eval(this, scope);
+			if (repl) {
+				if (res != NULL) {
+					std::cout << res->to_string() << "\n";
+				} else {
+					std::cout << "nil" << "\n";
+				}
 			}
 		}
+	} catch (std::string msg) {
+		std::cout << "Error: " << msg << "\n";
 	}
-
 	delete parser;
 }
 

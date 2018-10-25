@@ -7,7 +7,4 @@
 ;       (* x (fact (- x 1)))))
 
 ; (print (fact 5))
-
-(setq a 3)
-
-(print (+ a a))
+(print (+ 1 2))

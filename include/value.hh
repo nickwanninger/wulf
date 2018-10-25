@@ -26,8 +26,14 @@
 #include <iostream>
 #include <scope.hh>
 #include <state.hh>
+#include <specialforms.hh>
 
 NSCLASS(scope, Scope)
+NSCLASS(value, Value) // forward define value
+
+using stringlist = std::vector<std::string>;
+typedef std::vector<value::Value*> valuelist;
+
 
 namespace value {
 
@@ -36,6 +42,7 @@ namespace value {
 		list,
 		ident,
 		number,
+		procedure,
 		nil,
 	};
 
@@ -54,7 +61,7 @@ namespace value {
 
 	class List : public Value {
 		private:
-			std::vector<Value*> args;
+			valuelist args;
 		public:
 			Type type = list;
 			void push(Value*);
@@ -80,9 +87,8 @@ namespace value {
 
 
 	class Number : public Value {
-		private:
-			double value;
 		public:
+			double value;
 			Type type = number;
 			Number();
 			Number(char*);
@@ -99,6 +105,22 @@ namespace value {
 			std::string to_string();
 			Value* eval(State*, scope::Scope*);
 	};
+
+
+	class Procedure : public Value {
+		specialformfn cfunc;
+		bool is_special_form = false;
+		public:
+			Procedure(specialformfn);
+			Procedure(stringlist, List*);
+			stringlist args;
+			List* body;
+			Type type = procedure;
+			std::string to_string();
+			Value* apply(State*, scope::Scope*, valuelist);
+			Value* eval(State*, scope::Scope*);
+	};
+
 }
 
 

@@ -58,13 +58,32 @@ Value* List::eval(State* st, scope::Scope* sc) {
 	if (args.size() == 0) {
 		return new Nil();
 	}
+
 	/*
 	 * ope
 	 *   -rator
 	 *   -rand
 	 */
-	auto rator = args[0];
+	auto rator = args[0]->eval(st, sc);
 	auto rand = NULL;
+
+	// build the vector for the procedure application
+	valuelist fargs;
+	for (int i = 1; i < args.size(); i++) {
+		fargs.push_back(args[i]);
+	}
+
+	Procedure* proc = static_cast<Procedure*>(rator);
+	if (proc->type == procedure) {
+		return proc->apply(st, sc, fargs);
+	}
+
+	if (rator->type != procedure) {
+		std::string err = "attempt to apply to non-procedure '";
+		err += args[0]->to_string();
+		err += "'";
+		throw err;
+	}
 	return NULL;
 }
 
@@ -89,7 +108,7 @@ std::string Ident::to_string() {
 }
 
 Value* Ident::eval(State* st, scope::Scope* sc) {
-	return NULL;
+	return sc->find(value);
 }
 
 
@@ -149,6 +168,39 @@ std::string Nil::to_string() {
 
 // nil just evaulates to itself, always
 value::Value* Nil::eval(State* st, scope::Scope* sc) {
+	return this;
+}
+
+
+// ---------------- Procedure ----------------
+
+Procedure::Procedure(specialformfn func) {
+	type = procedure;
+	is_special_form = true;
+	cfunc = func;
+}
+
+Procedure::Procedure(stringlist ar, List* bd) {
+	type = procedure;
+	args = ar;
+	body = bd;
+}
+
+Value* Procedure::apply(State* st, scope::Scope* sc, valuelist args) {
+	if (is_special_form) {
+		if (cfunc == NULL) {
+			throw std::string("attempt to apply to special form that isn't bound");
+		}
+		return cfunc(st, sc, args);
+	}
+	return new Nil();
+}
+
+std::string Procedure::to_string() {
+	return "<procedure>";
+}
+
+Value* Procedure::eval(State* st, scope::Scope* sc) {
 	return this;
 }
 

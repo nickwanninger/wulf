@@ -3,6 +3,8 @@
 
 #include <wulf.hh>
 #include <map>
+#include <value.hh>
+#include <specialforms.hh>
 
 NSCLASS(value, Value)
 
@@ -37,6 +39,9 @@ NSCLASS(value, Value)
 				Scope* spawn_child();
 				value::Value* find(std::string);
 				void set(std::string, value::Value*);
+				void set(const char*, value::Value*);
+				void set(const char* name, specialformfn);
+				void install_special_forms();
 		};
 	}
 

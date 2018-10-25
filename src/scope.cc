@@ -1,5 +1,6 @@
 #include <scope.hh>
 #include <value.hh>
+#include <specialforms.hh>
 
 using namespace scope;
 
@@ -55,6 +56,16 @@ void Scope::set(std::string name, value::Value* val) {
 	bindings[name] = bind;
 }
 
+void Scope::set(const char* name, value::Value* val) {
+	set(std::string(name), val);
+}
+
+void Scope::set(const char* name, specialformfn fn) {
+	set(std::string(name), new value::Procedure(fn));
+}
+
+
+// void Scope::set(const char* name, value::Value
 
 Binding::Binding(value::Value* v) {
 	val = v;
@@ -63,4 +74,16 @@ Binding::Binding(value::Value* v) {
 Binding::Binding() {
 	Binding(new value::Nil());
 }
+
+
+void Scope::install_special_forms() {
+	set("+", specialform::add);
+	set("-", specialform::sub);
+	set("*", specialform::mul);
+	set("/", specialform::div);
+
+}
+
+
+
 

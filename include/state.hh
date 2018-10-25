@@ -14,6 +14,8 @@ class State {
 	bool repl = false;
 	int repl_index = 0;
 public:
+
+	State();
 	/*
 	 * a state must have a root scope, which defaults
 	 * to having no parent
