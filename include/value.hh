@@ -41,6 +41,7 @@ namespace value {
 		unknown,
 		list,
 		ident,
+		string,
 		number,
 		procedure,
 		nil,
@@ -62,7 +63,6 @@ namespace value {
 	class List : public Value {
 		public:
 			valuelist args;
-			Type type = list;
 			void push(Value*);
 			Value *operator[](const int index);
 			std::string to_string();
@@ -75,7 +75,6 @@ namespace value {
 		private:
 			std::string value;
 		public:
-			Type type = ident;
 			Ident(char*);
 			Ident(const char*);
 			Ident(std::string);
@@ -86,7 +85,6 @@ namespace value {
 	class Number : public Value {
 		public:
 			double value;
-			Type type = number;
 			Number();
 			Number(char*);
 			Number(long);
@@ -97,7 +95,6 @@ namespace value {
 
 	class Nil : public Value {
 		public:
-			Type type = nil;
 			Nil();
 			std::string to_string();
 			Value* eval(State*, scope::Scope*);
@@ -112,12 +109,32 @@ namespace value {
 			Procedure(stringlist, Value*);
 			stringlist args;
 			Value* body;
-			Type type = procedure;
 			std::string to_string();
 			Value* apply(State*, scope::Scope*, valuelist);
 			Value* eval(State*, scope::Scope*);
 	};
 
+
+	class String : public Value {
+		private:
+			std::string value;
+		public:
+			String(char*);
+			String(const char*);
+			String(std::string);
+			std::string to_string();
+			Value* eval(State*, scope::Scope*);
+	};
+
+
+	/*
+	 * helper functions
+	 */
+	#define CHECK_DECL(name) bool name(Value*)
+	CHECK_DECL(is_true);
+	CHECK_DECL(is_number);
+	CHECK_DECL(is_string);
+	CHECK_DECL(is_list);
 }
 
 

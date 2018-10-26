@@ -23,6 +23,15 @@ namespace specialform {
 	SPECIALFORM(eval);
 	SPECIALFORM(load);
 	SPECIALFORM(lambda);
+	SPECIALFORM(set);
+	SPECIALFORM(setq);
+	SPECIALFORM(gc_collect);
+	SPECIALFORM(if_stmt);
+	SPECIALFORM(defun);
+	SPECIALFORM(repl);
+	SPECIALFORM(equals);
+	SPECIALFORM(greater);
+	SPECIALFORM(nand);
 }
 
 #endif

@@ -21,7 +21,7 @@ void State::eval(char* source) {
 	try {
 		nodes = parser->parse_top_level();
 	} catch (const char* msg) {
-		std::cout << "Evaluation Failed: " << msg << "\n";
+		std::cout << "Parse Error: " << msg << "\n";
 		return;
 	}
 
@@ -31,14 +31,19 @@ void State::eval(char* source) {
 			auto res = node->eval(this, scope);
 			if (repl) {
 				if (res != NULL) {
-					std::cout << res->to_string() << "\n";
+					// if res isn't a value::Nil, print it's value
+					if (value::is_true(res)) {
+						std::cout << res->to_string() << "\n";
+					}
 				} else {
 					std::cout << "nil" << "\n";
 				}
 			}
 		}
 	} catch (std::string msg) {
-		std::cout << "Error: " << msg << "\n";
+		std::cout << "Exception: " << msg << "\n";
+	} catch (const char* msg) {
+		std::cout << "Exception: " << msg << "\n";
 	}
 	delete parser;
 }
@@ -65,7 +70,7 @@ void State::run_repl() {
 	repl = true;
 	char* buf;
 	while (true) {
-		buf = linenoise("> ");
+		buf = linenoise("wulf> ");
 		if (buf == nullptr) break;
 
 		if (strlen(buf) > 0) {

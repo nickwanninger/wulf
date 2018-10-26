@@ -148,9 +148,12 @@ value::Value* Parser::parse_expr() {
 		case TOK_QUOTE:
 			return parse_quote();
 		case TOK_UNKNOWN:
-		case TOK_STRING:
 		case TOK_SYMBOL:
 			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
+		case TOK_STRING:
+			auto s = new value::String(tok.value);
+			next();
+			return s;
 	}
 	next();
 	return new value::Ident("nil");

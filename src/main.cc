@@ -35,7 +35,6 @@ static void xfinalizer(GC_PTR obj, GC_PTR x) {
 
 void* xmalloc(size_t size) {
 	void* ptr = GC_MALLOC(size);
-	// GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
 	return ptr;
 }
 

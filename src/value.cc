@@ -90,15 +90,18 @@ Value* List::eval(State* st, scope::Scope* sc) {
 // ---------------- Ident ----------------
 
 Ident::Ident(char* val) {
+	type = ident;
 	value = std::string(val);
 }
 
 Ident::Ident(const char* val) {
 	value = std::string(val);
+	type = ident;
 }
 
 Ident::Ident(std::string v) {
 	value = v;
+	type = ident;
 }
 
 
@@ -119,6 +122,7 @@ Value* Ident::eval(State* st, scope::Scope* sc) {
  */
 Number::Number(char* val) {
 	value = std::atof(val);
+	type = number;
 }
 
 /*
@@ -127,6 +131,7 @@ Number::Number(char* val) {
  */
 Number::Number(long val) {
 	value = (double)val;
+	type = number;
 }
 
 /*
@@ -135,12 +140,14 @@ Number::Number(long val) {
  */
 Number::Number(double val) {
 	value = val;
+	type = number;
 }
 
 /*
  * default Number constructor
  */
 Number::Number() {
+	type = number;
 	value = 0;
 }
 
@@ -159,7 +166,9 @@ std::string Number::to_string() {
 
 // ---------------- Nil ----------------
 
-Nil::Nil() {}
+Nil::Nil() {
+	type = nil;
+}
 
 std::string Nil::to_string() {
 	return std::string("nil");
@@ -190,7 +199,7 @@ Value* Procedure::apply(State* st, scope::Scope* sc, valuelist arglist) {
 		if (cfunc == NULL) {
 			throw std::string("attempt to apply to special form that isn't bound");
 		}
-		return cfunc(st, sc, arglist);
+		return cfunc(st, sc->spawn_child(), arglist);
 	}
 
 	std::vector<Value*> vals;
@@ -210,7 +219,24 @@ Value* Procedure::apply(State* st, scope::Scope* sc, valuelist arglist) {
 }
 
 std::string Procedure::to_string() {
-	return "<procedure>";
+
+	if (is_special_form) {
+		return "(special-form)";
+	}
+
+	std::ostringstream buf;
+
+	buf << "(lambda (";
+
+	for (int i = 0; i < args.size(); i++) {
+		buf << args[i];
+		if (i < args.size()-1) buf << " ";
+	}
+
+	buf << ") ";
+	buf << body->to_string();
+	buf << ")";
+	return buf.str();
 }
 
 Value* Procedure::eval(State* st, scope::Scope* sc) {
@@ -219,8 +245,45 @@ Value* Procedure::eval(State* st, scope::Scope* sc) {
 
 
 
+// ------------------ String ------------------
 
 
+String::String(char* val) {
+	value = std::string(val);
+	type = string;
+}
+
+String::String(const char* val) {
+	value = std::string(val);
+	type = string;
+}
+
+String::String(std::string val) {
+	value = val;
+	type = string;
+}
+// strings evaluate to themselves
+Value* String::eval(State* st, scope::Scope* sc) {
+	return this;
+}
+std::string String::to_string() {
+	return value;
+}
 
 
+#define CHECK_SIG(name) \
+	bool value::name(Value* val)
+
+#define VALUE_T_CHECK(name, type) \
+	CHECK_SIG(name) { return dynamic_cast<type>(val) == NULL; }
+
+VALUE_T_CHECK(is_number, value::Nil*)
+VALUE_T_CHECK(is_string, value::String*)
+VALUE_T_CHECK(is_list, value::List*)
+
+CHECK_SIG(is_true) {
+	// if the dynamic_cast of a value to nil is a NULL ptr,
+	// it must be true, because it's not a nil
+	return val->type != nil;
+}
 

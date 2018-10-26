@@ -22,6 +22,8 @@ Scope::Scope(Scope* p) {
 	parent = p;
 	root = parent->root;
 	index = scope_index++;
+	// int pi = (parent != NULL) ? parent->index : -1;
+	// std::cout << "created scope (" << index << ", " << pi << ")\n";
 }
 
 /*
@@ -36,7 +38,7 @@ Scope* Scope::spawn_child() {
  * recursively find a variable name in the scope
  */
 value::Value* Scope::find(std::string name) {
-
+	// std::cout << "scope: " << index << " name: " << name <<  " parent: " << ((parent != NULL) ? parent->index : -1) << "\n";
 	// attempt to read the binding from this scope's local map
 	auto* found = bindings[name];
 	if (found != NULL) {
@@ -49,7 +51,7 @@ value::Value* Scope::find(std::string name) {
 		return parent->find(name);
 	}
 	// if the value wasn't found, give up and return a nil
-	// TODO: decide if this should throw or not...
+	throw std::string("variable ") + name + " is not bound";
 	return new value::Nil();
 }
 
@@ -88,23 +90,35 @@ Binding::Binding() {
 
 #define BINDSF(name) \
 	set(#name, specialform::name)
+
 void Scope::install_default_bindings() {
 	set("+", specialform::add);
 	set("-", specialform::sub);
 	set("*", specialform::mul);
 	set("/", specialform::div);
 
-
+	set("t", new value::Ident("t"));
+	set("nil", new value::Nil());
 	BINDSF(pow);
 	BINDSF(print);
 	BINDSF(quote);
 	BINDSF(eval);
 	BINDSF(load);
+
+	set("if", specialform::if_stmt);
+
 	BINDSF(lambda);
 	set("->", specialform::lambda);
 
-	set("math/pi", 3.14159265358979323846);
-	set("math/e",  2.71828182845904523534);
+	BINDSF(set);
+	BINDSF(setq);
+	BINDSF(defun);
+	BINDSF(repl);
+	set("define", specialform::setq);
+	set("gc/collect", specialform::gc_collect);
+	set("=", specialform::equals);
+	set(">", specialform::greater);
+	BINDSF(nand);
 }
 
 
