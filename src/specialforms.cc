@@ -90,6 +90,16 @@ FORM(eval) {
 }
 
 FORM(load) {
+	if (args.size() != 1) throw "call to load requires one argument";
+	auto value = args[0].eval(st, sc);
+	if (value.type != value::string) throw "call to load requires a string filepath";
+
+	// we don't want to print all the evaluations
+	auto prev_repl = st->repl;
+	st->repl = false;
+	// load the file
+	st->eval_file((char*)value.ident.c_str());
+	st->repl = prev_repl;
 	return value::Object();
 }
 
