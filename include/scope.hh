@@ -2,50 +2,41 @@
 #define __SCOPE_HH
 
 #include <wulf.hh>
-#include <map>
-#include <value.hh>
+#include <unordered_map>
 #include <specialforms.hh>
 
-NSCLASS(value, Value)
 
-	namespace scope {
+NSCLASS(value, Object);
 
-		class Binding {
-			public:
-				Binding(value::Value*);
-				Binding();
-				value::Value* val;
-		};
+namespace scope {
+	class Scope {
+		private:
+			std::unordered_map<std::string, value::Object> bindings;
+		public:
 
+			int index = 0;
+			/*
+			 * a scope can have a parent.
+			 */
+			Scope* parent = NULL;
 
-		class Scope {
-			private:
-				std::map<std::string, Binding*> bindings;
-			public:
-
-				int index = 0;
-				/*
-				 * a scope can have a parent.
-				 */
-				Scope* parent = NULL;
-
-				Scope* root = NULL;
-				/*
-				 * constructors
-				 */
-				Scope();
-				Scope(Scope*);
-				/*
-				 * spawn a child for the scope
-				 */
-				Scope* spawn_child();
-				value::Value* find(std::string);
-				void set(std::string, value::Value*);
-				void set(const char*, value::Value*);
-				void set(const char* name, specialformfn);
-				void set(const char*, double);
-				void install_default_bindings();
-		};
-	}
+			Scope* root = NULL;
+			/*
+			 * constructors
+			 */
+			Scope();
+			Scope(Scope*);
+			/*
+			 * spawn a child for the scope
+			 */
+			Scope* spawn_child();
+			value::Object find(std::string);
+			void set(std::string, value::Object);
+			void set(const char*, value::Object);
+			void set(const char* name, specialformfn);
+			void set(const char*, double);
+			void install_default_bindings();
+	};
+}
 
 #endif

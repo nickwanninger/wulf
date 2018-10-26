@@ -16,7 +16,7 @@ void State::eval(char* source) {
 	auto toks = lex(source);
 	auto parser = new Parser(toks);
 
-	std::vector<value::Value*> nodes;
+	std::vector<value::Object> nodes;
 
 	try {
 		nodes = parser->parse_top_level();
@@ -27,17 +27,10 @@ void State::eval(char* source) {
 
 
 	try {
-		for (auto* node : nodes) {
-			auto res = node->eval(this, scope);
+		for (auto node : nodes) {
+			auto res = node.eval(this, scope);
 			if (repl) {
-				if (res != NULL) {
-					// if res isn't a value::Nil, print it's value
-					if (value::is_true(res)) {
-						std::cout << res->to_string() << "\n";
-					}
-				} else {
-					std::cout << "nil" << "\n";
-				}
+				std::cout << res.to_string() << "\n";
 			}
 		}
 	} catch (std::string msg) {

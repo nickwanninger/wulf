@@ -4,13 +4,14 @@
 #include <wulf.hh>
 #include <vector>
 
-NSCLASS(value, Value)
-NSCLASS(scope, Scope)
+NSCLASS(value, Object);
+NSCLASS(scope, Scope);
 class State;
 
-#define SPECIALFORM(name) value::Value* name(State*, scope::Scope*, valuelist)
-typedef std::vector<value::Value*> valuelist;
-typedef value::Value* (*specialformfn)(State*, scope::Scope*, valuelist);
+typedef std::vector<value::Object> valuelist;
+typedef value::Object (*specialformfn)(State*, scope::Scope*, valuelist);
+
+#define SPECIALFORM(name) value::Object name(State*, scope::Scope*, valuelist)
 
 namespace specialform {
 	SPECIALFORM(add);
@@ -31,6 +32,7 @@ namespace specialform {
 	SPECIALFORM(repl);
 	SPECIALFORM(equals);
 	SPECIALFORM(greater);
+	SPECIALFORM(less);
 	SPECIALFORM(nand);
 }
 

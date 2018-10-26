@@ -61,12 +61,12 @@ class Parser {
 		/*
 		 * parse the top level nodes of a set of tokens
 		 */
-		std::vector<value::Value*> parse_top_level();
-		value::List* parse_list();
-		value::List* parse_quote();
-		value::Ident* parse_ident();
-		value::Value* parse_expr();
-		value::Number* parse_number();
+		std::vector<value::Object> parse_top_level();
+		value::Object parse_list();
+		value::Object parse_quote();
+		value::Object parse_ident();
+		value::Object parse_expr();
+		value::Object parse_number();
 };
 
 

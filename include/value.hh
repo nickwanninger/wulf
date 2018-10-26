@@ -28,11 +28,11 @@
 #include <state.hh>
 #include <specialforms.hh>
 
-NSCLASS(scope, Scope)
-NSCLASS(value, Value) // forward define value
+NSCLASS(scope, Scope);
+NSCLASS(value, Object); // forward define value
 
 using stringlist = std::vector<std::string>;
-typedef std::vector<value::Value*> valuelist;
+typedef std::vector<value::Object> valuelist;
 
 
 namespace value {
@@ -47,94 +47,41 @@ namespace value {
 		nil,
 	};
 
-	class Value {
-		public:
-			Type type = unknown;
-			// simple print method
-			// virtual methods for a node
-			// all sub classes must implement these
-			// (kinda like an interface, I guess?)
-			virtual std::string to_string() = 0;
-			virtual Value* eval(State*, scope::Scope*);
-	};
 
-
-
-	class List : public Value {
-		public:
-			valuelist args;
-			void push(Value*);
-			Value *operator[](const int index);
-			std::string to_string();
-			Value* eval(State*, scope::Scope*);
-	};
-
-
-
-	class Ident : public Value {
+	class Object {
 		private:
-			std::string value;
+			Object eval_list(State*, scope::Scope*);
+			int index = 0;
+
 		public:
-			Ident(char*);
-			Ident(const char*);
-			Ident(std::string);
+			Type type = nil;
+
+			double number;
+			std::string ident;
+			std::vector<Object> list;
+			struct {
+				bool special = false;
+				std::vector<std::string> args;
+				Object* body;
+				specialformfn func;
+			} proc;
+
+			/*
+			 * Constructors
+			 */
+			Object();
+			~Object();
+			Object(double);
+			Object(std::string);
+			Object(std::vector<Object>);
+			Object(std::vector<std::string> names, Object* bod);
+			Object(specialformfn);
+
 			std::string to_string();
-			Value* eval(State*, scope::Scope*);
+			Object eval(State*, scope::Scope*);
+			Object apply(State*, scope::Scope*, std::vector<Object>);
+			bool is_true();
 	};
-
-	class Number : public Value {
-		public:
-			double value;
-			Number();
-			Number(char*);
-			Number(long);
-			Number(double);
-			std::string to_string();
-			Value* eval(State*, scope::Scope*);
-	};
-
-	class Nil : public Value {
-		public:
-			Nil();
-			std::string to_string();
-			Value* eval(State*, scope::Scope*);
-	};
-
-
-	class Procedure : public Value {
-		specialformfn cfunc;
-		bool is_special_form = false;
-		public:
-			Procedure(specialformfn);
-			Procedure(stringlist, Value*);
-			stringlist args;
-			Value* body;
-			std::string to_string();
-			Value* apply(State*, scope::Scope*, valuelist);
-			Value* eval(State*, scope::Scope*);
-	};
-
-
-	class String : public Value {
-		private:
-			std::string value;
-		public:
-			String(char*);
-			String(const char*);
-			String(std::string);
-			std::string to_string();
-			Value* eval(State*, scope::Scope*);
-	};
-
-
-	/*
-	 * helper functions
-	 */
-	#define CHECK_DECL(name) bool name(Value*)
-	CHECK_DECL(is_true);
-	CHECK_DECL(is_number);
-	CHECK_DECL(is_string);
-	CHECK_DECL(is_list);
 }
 
 

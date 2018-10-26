@@ -7,8 +7,8 @@
 #include <scope.hh>
 
 
-NSCLASS(scope, Scope)
-NSCLASS(value, Value)
+NSCLASS(scope, Scope);
+NSCLASS(value, Object);
 
 class State {
 	bool repl = false;

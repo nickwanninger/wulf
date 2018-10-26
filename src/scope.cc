@@ -37,12 +37,11 @@ Scope* Scope::spawn_child() {
 /*
  * recursively find a variable name in the scope
  */
-value::Value* Scope::find(std::string name) {
+value::Object Scope::find(std::string name) {
 	// std::cout << "scope: " << index << " name: " << name <<  " parent: " << ((parent != NULL) ? parent->index : -1) << "\n";
 	// attempt to read the binding from this scope's local map
-	auto* found = bindings[name];
-	if (found != NULL) {
-		return found->val;
+	if (bindings.find(name) != bindings.end()) {
+		return bindings[name];
 	}
 	// the variable wasn't in this scope, we need to check the parent one
 	// if it exists
@@ -52,40 +51,29 @@ value::Value* Scope::find(std::string name) {
 	}
 	// if the value wasn't found, give up and return a nil
 	throw std::string("variable ") + name + " is not bound";
-	return new value::Nil();
+	return value::Object();
 }
 
 
 /*
  * set a binding in the current scope
  */
-void Scope::set(std::string name, value::Value* val) {
-	auto bind = new Binding(val);
-	bindings[name] = bind;
+void Scope::set(std::string name, value::Object val) {
+	bindings[name] = val;
 }
 
-void Scope::set(const char* name, value::Value* val) {
+void Scope::set(const char* name, value::Object val) {
 	set(std::string(name), val);
 }
 
 void Scope::set(const char* name, specialformfn fn) {
-	set(std::string(name), new value::Procedure(fn));
+	set(std::string(name), value::Object(fn));
 }
 
 void Scope::set(const char* name, double val) {
-	set(name, new value::Number(val));
+	set(name, value::Object(val));
 }
 
-
-// void Scope::set(const char* name, value::Value
-
-Binding::Binding(value::Value* v) {
-	val = v;
-}
-// default constructor will bind nil to everything
-Binding::Binding() {
-	Binding(new value::Nil());
-}
 
 
 #define BINDSF(name) \
@@ -97,8 +85,8 @@ void Scope::install_default_bindings() {
 	set("*", specialform::mul);
 	set("/", specialform::div);
 
-	set("t", new value::Ident("t"));
-	set("nil", new value::Nil());
+	set("t", value::Object("t"));
+	set("nil", value::Object());
 	BINDSF(pow);
 	BINDSF(print);
 	BINDSF(quote);
@@ -118,6 +106,7 @@ void Scope::install_default_bindings() {
 	set("gc/collect", specialform::gc_collect);
 	set("=", specialform::equals);
 	set(">", specialform::greater);
+	set("<", specialform::less);
 	BINDSF(nand);
 }
 

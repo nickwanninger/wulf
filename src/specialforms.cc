@@ -6,29 +6,31 @@
 using namespace specialform;
 
 
-value::Value* numberop(State* st, scope::Scope* sc, valuelist args, std::function<double(double, double)> fn) {
+value::Object numberop(State* st, scope::Scope* sc, valuelist args, std::function<double(double, double)> fn) {
 	if (args.size() != 2) {
 		throw std::string("call to binary op requires two arguments");
 	}
-	auto* val1 = static_cast<value::Number*>(args[0]->eval(st, sc));
-	auto* val2 = static_cast<value::Number*>(args[1]->eval(st, sc));
-	if (!val1 || !val2) {
-		return new value::Nil();
+	auto val1 = args[0].eval(st, sc);
+	auto val2 = args[1].eval(st, sc);
+
+	// std::cout << "binop: " << val1.to_string() << ", " << val2.to_string() << "\n";
+	if (val1.type == val2.type && val1.type == value::number) {
+		auto obj = value::Object();
+		obj.type = value::number;
+		obj.number = fn(val1.number, val2.number);
+		return obj;
 	}
-	if (val1->type == val2->type && val1->type == value::number) {
-		return new value::Number(fn(val1->value, val2->value));
-	}
-	return new value::Nil();
+	return value::Object();
 }
 
 
-#define BOOLVAL(val) ((val) ? (value::Value*)(new value::Ident("t")) : (value::Value*)(new value::Nil()))
+#define BOOLVAL(val) ((val) ? (value::Object("t")) : (value::Object()))
 
 #define NUMOPLAMBDA(op) \
 	numberop(st, sc, args, [](double a, double b) -> double { return a op b; })
 
 #define FORM(name) \
-	value::Value* specialform::name(State* st, scope::Scope* sc, valuelist args)
+	value::Object specialform::name(State* st, scope::Scope* sc, valuelist args)
 
 FORM(add) {
 	return NUMOPLAMBDA(+);
@@ -39,12 +41,11 @@ FORM(sub) {
 	// if there is only one argument, we just negate it.
 	// otherwise we do normal binary ops
 	if (args.size() == 1) {
-		auto val = args[0]->eval(st, sc);
-		auto num = dynamic_cast<value::Number*>(val);
-		if (num == NULL) {
+		auto val = args[0].eval(st, sc);
+		if (val.type != value::number) {
 			throw "attempt to negate non-number";
 		}
-		return new value::Number(num->value * -1);
+		return value::Object(val.number * -1);
 	}
 	return NUMOPLAMBDA(-);
 }
@@ -65,13 +66,13 @@ FORM(print) {
 	std::ostringstream os;
 	for (int i = 0; i < args.size(); i++) {
 		auto& arg = args[i];
-		auto val = arg->eval(st, sc);
-		os << val->to_string();
+		auto val = arg.eval(st, sc);
+		os << val.to_string();
 		if (i < args.size()-1)
 			os << " ";
 	}
 	std::cout << os.str() << std::endl;
-	return new value::Nil();
+	return value::Object();
 }
 
 FORM(quote) {
@@ -85,11 +86,11 @@ FORM(eval) {
 	if (args.size() != 1) {
 		throw std::string("invalid syntax in eval: must have one argument");
 	}
-	return args[0]->eval(st, sc)->eval(st, sc);
+	return args[0].eval(st, sc).eval(st, sc);
 }
 
 FORM(load) {
-	return new value::Nil();
+	return value::Object();
 }
 
 
@@ -97,19 +98,21 @@ FORM(lambda) {
 	if (args.size() != 2) {
 		throw std::string("invalid syntax in lambda: must have two arguments. ex: (lambda (..) ..)");
 	}
-	auto* argnames = static_cast<value::List*>(args[0]);
-	if (argnames == NULL)
+	auto argnames = args[0];
+	if (argnames.type != value::list)
 		throw std::string("argument 1 to lambda definition is not a list of names");
 
 	std::vector<std::string> arglist;
 	// for (auto a : argnames->List::z)
-	for (auto a : argnames->args) {
-		auto* ident = static_cast<value::Ident*>(a);
-		if (ident == NULL)
+	for (auto a : argnames.list) {
+		if (a.type != value::ident)
 			throw std::string("argument name to lambda is not an identifier");
-		arglist.push_back(ident->to_string());
+		arglist.push_back(a.to_string());
 	}
-	return new value::Procedure(arglist, args[1]);
+	// allocate the body in dynamic memory, then copy the old body into it.
+	auto* body = new value::Object();
+	*body = args[1];
+	return value::Object(arglist, body);
 }
 
 FORM(defun) {
@@ -117,22 +120,24 @@ FORM(defun) {
 		throw std::string("invalid syntax in defun: must have two arguments. ex: (defun name (args..) (body..))");
 	}
 
-	auto nameval = dynamic_cast<value::Ident*>(args[0]);
-	if (nameval == NULL)
+	auto nameval = args[0];
+	if (nameval.type != value::ident)
 		throw std::string("first argument to defun is not an identifier");
-	std::string name = nameval->to_string();
+	std::string name = nameval.ident;
 
-	auto* argnames = dynamic_cast<value::List*>(args[1]);
-	if (args[1]->type != value::list && argnames == NULL)
+	auto argnames = args[1];
+	if (argnames.type != value::list)
 		throw std::string("argument 2 to defun is not a list of names");
+
 	std::vector<std::string> arglist;
-	for (auto a : argnames->args) {
-		auto* ident = dynamic_cast<value::Ident*>(a);
-		if (ident == NULL)
+	for (auto ident : argnames.list) {
+		if (ident.type != value::ident)
 			throw std::string("argument name to defun is not an identifier");
-		arglist.push_back(ident->to_string());
+		arglist.push_back(ident.ident);
 	}
-	auto* func = new value::Procedure(arglist, args[2]);
+	auto* body = new value::Object();
+	*body = args[2];
+	auto func = value::Object(arglist, body);
 	sc->root->set(name, func);
 	return func;
 }
@@ -141,12 +146,11 @@ FORM(set) {
 	if (args.size() != 2) {
 		throw std::string("invalid syntax in set: must have two arguments. ex: (set 'foo bar)");
 	}
-	auto name = args[0]->eval(st, sc);
-	value::Ident* n = static_cast<value::Ident*>(name);
-	if (n->type != value::ident)
-		throw std::string("attempt to assign to non-identifier ") + n->to_string();
-	auto val = args[1]->eval(st, sc);
-	sc->root->set(name->to_string(), val);
+	auto name = args[0].eval(st, sc);
+	if (name.type != value::ident)
+		throw std::string("attempt to assign to non-identifier ") + name.to_string();
+	auto val = args[1].eval(st, sc);
+	sc->root->set(name.to_string(), val);
 	return val;
 }
 
@@ -155,17 +159,16 @@ FORM(setq) {
 		throw std::string("invalid syntax in setq: must have two arguments. ex: (setq foo bar)");
 	}
 	auto name = args[0];
-	value::Ident* n = static_cast<value::Ident*>(name);
-	if (n->type != value::ident)
-		throw std::string("attempt to assign to non-identifier ") + n->to_string();
-	auto val = args[1]->eval(st, sc);
-	sc->root->set(name->to_string(), val);
+	if (name.type != value::ident)
+		throw std::string("attempt to assign to non-identifier ") + name.to_string();
+	auto val = args[1].eval(st, sc);
+	sc->root->set(name.to_string(), val);
 	return val;
 }
 
 FORM(gc_collect) {
 	GC_gcollect();
-	return new value::Nil();
+	return value::Object();
 }
 
 FORM(if_stmt) {
@@ -176,62 +179,62 @@ FORM(if_stmt) {
 			throw "invalid syntax in if conditional (incorrect number of arguments)";
 		}
 		// there wasn't a provided "else" value, so push a nil
-		args.push_back(new value::Nil());
+		args.push_back(value::Object());
 	}
 
-	auto predicate = args[0]->eval(st, sc);
+	auto predicate = args[0].eval(st, sc);
 	auto then_expr = args[1];
 	auto else_expr = args[2];
 
-	if (value::is_true(predicate)) {
-		return then_expr->eval(st, sc);
+	if (predicate.type != value::nil) {
+		return then_expr.eval(st, sc);
 	}
-
-	return else_expr->eval(st, sc);
-	std::cout << args.size() << "\n";
-	return new value::Nil();
+	return else_expr.eval(st, sc);
 }
 
 FORM(repl) {
 	st->run_repl();
-	return new value::Nil();
+	return value::Object();
 }
 
 FORM(equals) {
 	if (args.size() != 2) throw "incorrect arg count provided to =";
 
 
-	auto a = args[0]->eval(st, sc);
-	auto b = args[1]->eval(st, sc);
+	auto a = args[0].eval(st, sc);
+	auto b = args[1].eval(st, sc);
 
-	if (a->type != b->type) return new value::Nil();
-
-	return BOOLVAL(a->to_string() == b->to_string());
+	if (a.type != b.type) return value::Object();
+	// check if the string representation is the same...
+	// we can do this because the string representation generator
+	// is fully featured, and can serialize any object.
+	// (as long as both types are the same)
+	return BOOLVAL(a.to_string() == b.to_string());
 }
 
 
 
 FORM(greater) {
 	if (args.size() != 2) throw "incorrect arg count provided to >";
-
-
-	auto a = args[0]->eval(st, sc);
-	auto b = args[1]->eval(st, sc);
-
-	if (a->type != value::number || a->type != b->type) throw "comparison to a non number failed";
-
-	auto numa = dynamic_cast<value::Number*>(a);
-	auto numb = dynamic_cast<value::Number*>(b);
-	return BOOLVAL(numa->value > numb->value);
+	auto a = args[0].eval(st, sc);
+	auto b = args[1].eval(st, sc);
+	if (a.type != value::number || a.type != b.type) throw "comparison to a non number failed";
+	return BOOLVAL(a.number > b.number);
 }
+FORM(less) {
+	if (args.size() != 2) throw "incorrect arg count provided to >";
+	auto a = args[0].eval(st, sc);
+	auto b = args[1].eval(st, sc);
+	if (a.type != value::number || a.type != b.type) throw "comparison to a non number failed";
+	return BOOLVAL(a.number < b.number);
+}
+
 
 FORM(nand) {
 	if (args.size() != 2) throw "incorrect arg count provided to nand";
-	auto a = args[0]->eval(st, sc);
-	auto b = args[1]->eval(st, sc);
-	bool at = value::is_true(a);
-	bool bt = value::is_true(b);
-	return BOOLVAL(!(at && bt));
+	auto a = args[0].eval(st, sc);
+	auto b = args[1].eval(st, sc);
+	return BOOLVAL(!(a.is_true() && b.is_true()));
 }
 
 

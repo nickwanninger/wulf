@@ -2,7 +2,7 @@ CC = clang
 CXX = clang++
 
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
-CFLAGS = -I./include
+CFLAGS = -I./include -O3
 CXXLDLIBS = -std=c++11 -lc -lgc
 
 objs = $(srcs:.cc=.o)

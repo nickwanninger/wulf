@@ -61,14 +61,11 @@ Token Parser::reset() {
 }
 
 
-std::vector<value::Value*> Parser::parse_top_level() {
-	std::vector<value::Value*> nodes;
+std::vector<value::Object> Parser::parse_top_level() {
+	std::vector<value::Object> nodes;
 	reset();
 	while (tok.type != TOK_EOF) {
-		value::Value *node = parse_expr();
-		if (node == NULL) {
-			break;
-		}
+		auto node = parse_expr();
 		nodes.push_back(node);
 	}
 
@@ -83,8 +80,10 @@ bool Parser::requires(int type) {
 	return true;
 }
 
-value::List* Parser::parse_list() {
-	value::List *list = new value::List();
+value::Object Parser::parse_list() {
+	auto obj = value::Object();
+	obj.type = value::list;
+
 	requires(TOK_LPAREN);
 	// step along to the next token
 	next();
@@ -92,12 +91,8 @@ value::List* Parser::parse_list() {
 		if (tok.type == TOK_EOF) {
 			throw "unexpected EOF";
 		}
-		value::Value *node = parse_expr();
-		if (node == NULL) {
-			std::cout << "null thing\n";
-			break;
-		}
-		list->push(node);
+		auto node = parse_expr();
+		obj.list.push_back(node);
 	}
 
 	if (tok.type != TOK_RPAREN) {
@@ -105,35 +100,39 @@ value::List* Parser::parse_list() {
 	}
 	// step forward after the last right paren in the list
 	next();
-	return list;
+	return obj;
 }
 
 
-value::List* Parser::parse_quote() {
+value::Object Parser::parse_quote() {
 	requires(TOK_QUOTE);
-	value::List *list = new value::List();
-	list->push(new value::Ident("quote"));
+	auto obj = value::Object();
+	obj.type = value::list;
+	obj.list.push_back(value::Object("quote"));
 	next();
-	list->push(parse_expr());
-	return list;
+	obj.list.push_back(parse_expr());
+	return obj;
 }
 
-value::Ident* Parser::parse_ident() {
+value::Object Parser::parse_ident() {
 	requires(TOK_IDENTIFIER);
-	value::Ident *ident = new value::Ident(tok.value);
+	auto obj = value::Object(tok.value);
+	obj.type = value::ident;
 	next();
-	return ident;
+	return obj;
 }
 
-value::Number* Parser::parse_number() {
+value::Object Parser::parse_number() {
 	requires(TOK_NUMBER);
-	value::Number *num = new value::Number(tok.value);
+	auto obj = value::Object();
+	obj.type = value::number;
+	obj.number = std::atof(tok.value);
 	next();
-	return num;
+	return obj;
 }
 
 
-value::Value* Parser::parse_expr() {
+value::Object Parser::parse_expr() {
 	switch (tok.type) {
 		case TOK_EOF:
 			throw "unexpected EOF";
@@ -151,12 +150,13 @@ value::Value* Parser::parse_expr() {
 		case TOK_SYMBOL:
 			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
 		case TOK_STRING:
-			auto s = new value::String(tok.value);
+			auto s = value::Object(tok.value);
+			s.type = value::string;
 			next();
 			return s;
 	}
 	next();
-	return new value::Ident("nil");
+	return value::Object();
 }
 
 

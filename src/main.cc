@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
 	GC_init();
 	GC_enable_incremental();
 
+
 	auto *state = new State();
 
 	if (argc <= 1) {
