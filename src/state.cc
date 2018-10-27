@@ -34,9 +34,11 @@ void State::eval(char* source) {
 			}
 		}
 	} catch (std::string msg) {
-		std::cout << "Exception: " << msg << "\n";
+		std::cerr << "Exception: " << msg << "\n";
+		exit(1);
 	} catch (const char* msg) {
-		std::cout << "Exception: " << msg << "\n";
+		std::cerr << "Exception: " << msg << "\n";
+		exit(1);
 	}
 
 	delete parser;
