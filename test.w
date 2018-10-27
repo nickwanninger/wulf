@@ -8,4 +8,3 @@
 (defun <= (a b) (not (> a b)))
 (defun >= (a b) (not (< a b)))
 
-(repl)
