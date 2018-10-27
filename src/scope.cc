@@ -23,8 +23,6 @@ Scope::Scope(Scope* p) {
 	parent = p;
 	root = parent->root;
 	index = scope_index++;
-	// int pi = (parent != NULL) ? parent->index : -1;
-	// std::cout << "created scope (" << index << ", " << pi << ")\n";
 }
 
 /*
@@ -36,12 +34,10 @@ Scope* Scope::spawn_child() {
 
 
 /*
- * recursively find a variable name in the scope
+ * find a variable name in the scope or check all parents
  */
 value::Object Scope::find(std::string name) {
 
-	// std::cout << name << ": " << hashstring(name.c_str()) << "\n";
-	// std::cout << "scope: " << index << " name: " << name <<  " parent: " << ((parent != NULL) ? parent->index : -1) << "\n";
 	// attempt to read the binding from this scope's local map
 	value::Object val;
 	Scope* current = this;
@@ -54,11 +50,8 @@ value::Object Scope::find(std::string name) {
 		}
 		current = current->parent;
 	}
-
 	if (!found) throw std::string("variable ") + name + " is not bound";
-
 	bindings[name] = val;
-
 	return val;
 
 }
@@ -96,46 +89,30 @@ void Scope::install_default_bindings() {
 
 	set("t", value::Object("t"));
 	set("nil", value::Object());
-	BINDSF(pow);
-	BINDSF(print);
-	BINDSF(quote);
-	BINDSF(eval);
-	BINDSF(load);
-
-	set("if", specialform::if_stmt);
-
-	BINDSF(lambda);
-	set("->", specialform::lambda);
-
-	BINDSF(set);
-	BINDSF(setq);
-	BINDSF(defun);
-	BINDSF(repl);
 	set("define", specialform::setq);
 	set("gc/collect", specialform::gc_collect);
 	set("=", specialform::equals);
 	set(">", specialform::greater);
 	set("<", specialform::less);
-	BINDSF(nand);
+	set("if", specialform::if_stmt);
+	set("->", specialform::lambda);
 
+	BINDSF(pow);
+	BINDSF(print);
+	BINDSF(quote);
+	BINDSF(eval);
+	BINDSF(load);
+	BINDSF(lambda);
+	BINDSF(set);
+	BINDSF(setq);
+	BINDSF(defun);
+	BINDSF(repl);
+	BINDSF(nand);
 	BINDSF(first);
 	BINDSF(rest);
 }
 
 
-
-
-/*
-func hash(string str) long {
-	long hash = 5381;
-	size = len(str);
-
-	for c = 0; c < size; c += 1 {
-		hash = ((hash << 5) + hash) + c # hash * 33 + c
-	}
-	return hash
-}
-*/
 
 
 static long hashstring(const char* str) {
