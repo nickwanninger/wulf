@@ -6,6 +6,7 @@
 #include <parser.hh>
 
 
+
 State::State() {
 	scope = new scope::Scope();
 	scope->install_default_bindings();
@@ -25,11 +26,10 @@ void State::eval(char* source) {
 		return;
 	}
 
-
 	try {
-		for (auto node : nodes) {
+		for (auto& node : nodes) {
 			auto res = node.eval(this, scope);
-			if (repl) {
+			if (repl && res.type != value::nil) {
 				std::cout << res.to_string() << "\n";
 			}
 		}
@@ -38,6 +38,7 @@ void State::eval(char* source) {
 	} catch (const char* msg) {
 		std::cout << "Exception: " << msg << "\n";
 	}
+
 	delete parser;
 }
 

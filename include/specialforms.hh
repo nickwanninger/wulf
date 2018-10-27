@@ -34,6 +34,9 @@ namespace specialform {
 	SPECIALFORM(greater);
 	SPECIALFORM(less);
 	SPECIALFORM(nand);
+
+	SPECIALFORM(first);
+	SPECIALFORM(rest);
 }
 
 #endif

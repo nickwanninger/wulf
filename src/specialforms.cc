@@ -229,7 +229,6 @@ FORM(less) {
 	return BOOLVAL(a.number < b.number);
 }
 
-
 FORM(nand) {
 	if (args.size() != 2) throw "incorrect arg count provided to nand";
 	auto a = args[0].eval(st, sc);
@@ -237,6 +236,20 @@ FORM(nand) {
 	return BOOLVAL(!(a.is_true() && b.is_true()));
 }
 
+FORM(first) {
+	if (args.size() != 1) throw "call to first requires one argument";
+	auto val = args[0].eval(st, sc);
+	if (val.type != value::list) throw "call to first requires a list";
+	return val.list[0];
+}
 
+FORM(rest) {
+	if (args.size() != 1) throw "call to rest requires one argument";
+	auto val = args[0].eval(st, sc);
+	if (val.type != value::list) throw "call to rest requires a list";
+	if (val.list.size() < 1) throw std::string("error in call to list: ") + val.to_string() + " is not a pair";
+	val.list.erase(val.list.begin(), val.list.begin()+1);
+	return val;
+}
 
 

@@ -2,16 +2,32 @@
 #define __SCOPE_HH
 
 #include <wulf.hh>
-#include <unordered_map>
+#include <list>
 #include <specialforms.hh>
+#include <value.hh>
 
-
-NSCLASS(value, Object);
+#define BUCKET_SIZE 3
 
 namespace scope {
+
+
+	class Bucket {
+		public:
+			std::string key;
+			value::Object* val;
+	};
+
+	class Valmap {
+		private:
+			std::list<Bucket> buckets[BUCKET_SIZE];
+		public:
+			bool contains(const std::string&);
+			value::Object& operator[](const std::string);
+	};
+
 	class Scope {
 		private:
-			std::unordered_map<std::string, value::Object> bindings;
+			Valmap bindings;
 		public:
 
 			int index = 0;

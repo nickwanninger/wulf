@@ -62,7 +62,7 @@ namespace value {
 			struct {
 				bool special = false;
 				std::vector<std::string> args;
-				Object* body;
+				Object* body = NULL;
 				specialformfn func;
 			} proc;
 

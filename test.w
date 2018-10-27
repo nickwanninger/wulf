@@ -6,7 +6,6 @@
   (nand (nand a (nand a b))
         (nand b (nand a b))))
 
-
 (defun <= (a b) (not (> a b)))
 
 (defun fib (n)
@@ -14,5 +13,8 @@
     1
     (+ (fib (- n 1)) (fib (- n 2)))))
 
-(print (fib 10))
+
+
+(print (rest '(1 2 3 4)))
 (repl)
+

@@ -20,6 +20,7 @@
 #include <wulf.hh>
 #include <state.hh>
 #include <map>
+#include <unordered_map>
 #include <scope.hh>
 #include <thread>
 #include <value.hh>
@@ -35,6 +36,7 @@ static void xfinalizer(GC_PTR obj, GC_PTR x) {
 
 void* xmalloc(size_t size) {
 	void* ptr = GC_MALLOC(size);
+	// std::cout << "allocated " << size << " bytes\n";
 	return ptr;
 }
 
