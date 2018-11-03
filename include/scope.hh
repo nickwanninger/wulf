@@ -49,7 +49,6 @@ namespace scope {
 			value::Object find(std::string);
 			void set(std::string, value::Object);
 			void set(const char*, value::Object);
-			void set(const char* name, specialformfn);
 			void set(const char*, double);
 			void install_default_bindings();
 	};

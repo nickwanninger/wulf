@@ -5,6 +5,9 @@
 #include <vector>
 #include <scanner.hh>
 #include <scope.hh>
+#include <vm.hh>
+
+
 
 
 NSCLASS(scope, Scope);
@@ -14,6 +17,7 @@ class State {
 public:
 	int repl_index = 0;
 	bool repl = false;
+	vm::Machine* machine = NULL;
 	State();
 	/*
 	 * a state must have a root scope, which defaults

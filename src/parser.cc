@@ -61,8 +61,8 @@ Token Parser::reset() {
 }
 
 
-std::vector<value::Object> Parser::parse_top_level() {
-	std::vector<value::Object> nodes;
+std::vector<value::Object*> Parser::parse_top_level() {
+	std::vector<value::Object*> nodes;
 	reset();
 	while (tok.type != TOK_EOF) {
 		auto node = parse_expr();
@@ -80,11 +80,12 @@ bool Parser::requires(int type) {
 	return true;
 }
 
-value::Object Parser::parse_list() {
-	auto obj = value::Object();
-	obj.type = value::list;
+value::Object* Parser::parse_list() {
+	value::Object* obj = new value::Object(value::list);
 
 	requires(TOK_LPAREN);
+
+	std::vector<value::Object*> items;
 	// step along to the next token
 	next();
 	while (tok.type != TOK_RPAREN && tok.type) {
@@ -92,7 +93,17 @@ value::Object Parser::parse_list() {
 			throw "unexpected EOF";
 		}
 		auto node = parse_expr();
-		obj.list.push_back(node);
+		items.push_back(node);
+	}
+
+	// the loop below converts a list (1 2 3) into
+	// the list (1 . (2 . (3 . ()))) as is common
+	auto *curr = obj;
+	for (auto *object : items) {
+		auto *lst = new value::Object(value::list);
+		curr->first = object;
+		curr->last = lst;
+		curr = lst;
 	}
 
 	if (tok.type != TOK_RPAREN) {
@@ -104,35 +115,39 @@ value::Object Parser::parse_list() {
 }
 
 
-value::Object Parser::parse_quote() {
+value::Object* Parser::parse_quote() {
 	requires(TOK_QUOTE);
-	auto obj = value::Object();
-	obj.type = value::list;
-	obj.list.push_back(value::Object("quote"));
+	auto *obj = new value::Object();
+	obj->type = value::list;
+	obj->first = new value::Object("quote");
+	obj->first->type = value::ident;
 	next();
-	obj.list.push_back(parse_expr());
+	obj->last = new value::Object();
+	obj->last->type = value::list;
+	obj->last->first = parse_expr();
+	obj->last->last = new value::Object(value::list);
 	return obj;
 }
 
-value::Object Parser::parse_ident() {
+value::Object* Parser::parse_ident() {
 	requires(TOK_IDENTIFIER);
-	auto obj = value::Object(tok.value);
-	obj.type = value::ident;
+	auto obj = new value::Object(tok.value);
+	obj->type = value::ident;
 	next();
 	return obj;
 }
 
-value::Object Parser::parse_number() {
+value::Object* Parser::parse_number() {
 	requires(TOK_NUMBER);
-	auto obj = value::Object();
-	obj.type = value::number;
-	obj.number = std::atof(tok.value);
+	auto obj = new value::Object();
+	obj->type = value::number;
+	obj->number = std::atof(tok.value);
 	next();
 	return obj;
 }
 
 
-value::Object Parser::parse_expr() {
+value::Object* Parser::parse_expr() {
 	switch (tok.type) {
 		case TOK_EOF:
 			throw "unexpected EOF";
@@ -147,22 +162,23 @@ value::Object Parser::parse_expr() {
 		case TOK_QUOTE:
 			return parse_quote();
 		case TOK_UNKNOWN:
-		case TOK_SYMBOL:
 			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
+			break;
+		case TOK_KEYWORD: {
+				auto kw = new value::Object();
+				kw->type = value::keyword;
+				kw->string = tok.value;
+				next();
+				return kw;
+			}
 		case TOK_STRING:
-			auto s = value::Object(tok.value);
-			s.type = value::string;
+			auto s = new value::Object(tok.value);
+			s->type = value::string;
+			s->string = tok.value;
 			next();
 			return s;
 	}
 	next();
-	return value::Object();
+	return new value::Object();
 }
-
-
-
-
-
-
-
 

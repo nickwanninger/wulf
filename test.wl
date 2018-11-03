@@ -8,5 +8,13 @@
 (defun <= (a b) (not (> a b)))
 (defun >= (a b) (not (< a b)))
 
-(repl)
+(defun add-one (n)
+  (+ 1 n))
 
+(defun fib (n)
+  (if (< n 2)
+    1
+    (+ (fib (- n 1)) (fib (- n 2)))))
+
+(repl)
+'(+ 1 2)

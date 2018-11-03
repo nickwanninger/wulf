@@ -24,19 +24,20 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
-#include <scope.hh>
-#include <state.hh>
-#include <specialforms.hh>
 
 NSCLASS(scope, Scope);
 NSCLASS(value, Object); // forward define value
+NSCLASS(vm, Machine);
+NSCLASS(vm, Bytecode);
 
 using stringlist = std::vector<std::string>;
 typedef std::vector<value::Object> valuelist;
 
 
 namespace value {
-
+	/*
+	 * the Type enum is a listing of various types an object can embody
+	 */
 	enum Type {
 		unknown,
 		list,
@@ -44,43 +45,50 @@ namespace value {
 		string,
 		number,
 		procedure,
+		keyword,
 		nil,
 	};
 
-
 	class Object {
-		private:
-			Object eval_list(State*, scope::Scope*);
-			int index = 0;
-
 		public:
 			Type type = nil;
-
-			double number;
-			std::string ident;
-			std::vector<Object> list;
-			struct {
-				bool special = false;
-				std::vector<std::string> args;
-				Object* body = NULL;
-				specialformfn func;
-			} proc;
-
 			/*
-			 * Constructors
+			 * a union for the various data types that can be
+			 * stored in an Object
+			 */
+			union {
+				double number;
+				char* string;
+				struct {
+					Object* first = NULL;
+					Object* last = NULL;
+				};
+				/*
+				 * a procedure just stores a listing of the bytecode used to
+				 * call that procedure. So we need to store the code in the object
+				 * and information about argument names.
+				 */
+				struct {
+					vm::Bytecode* code;
+					uint8_t argc;
+					char** argv;
+				};
+			};
+			/*
+			 *
 			 */
 			Object();
 			~Object();
+			Object(Type);
 			Object(double);
-			Object(std::string);
-			Object(std::vector<Object>);
-			Object(std::vector<std::string> names, Object* bod);
-			Object(specialformfn);
-
+			Object(char*);
+			Object(const char*);
 			std::string to_string();
-			Object eval(State*, scope::Scope*);
-			Object apply(State*, scope::Scope*, std::vector<Object>);
+			void compile(vm::Machine*, vm::Bytecode*);
+			void compile_quote(vm::Machine*, vm::Bytecode*);
 			bool is_true();
+			size_t length();
+			Object* operator[] (int);
 	};
 }
 

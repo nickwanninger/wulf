@@ -68,10 +68,6 @@ void Scope::set(const char* name, value::Object val) {
 	set(std::string(name), val);
 }
 
-void Scope::set(const char* name, specialformfn fn) {
-	set(std::string(name), value::Object(fn));
-}
-
 void Scope::set(const char* name, double val) {
 	set(name, value::Object(val));
 }
@@ -82,37 +78,13 @@ void Scope::set(const char* name, double val) {
 	set(#name, specialform::name)
 
 void Scope::install_default_bindings() {
-	set("+", specialform::add);
-	set("-", specialform::sub);
-	set("*", specialform::mul);
-	set("/", specialform::div);
+	value::Object t("t"); t.type = value::ident;
+	set("t", t);
 
-	set("t", value::Object("t"));
-	set("nil", value::Object());
-	set("define", specialform::setq);
-	set("gc/collect", specialform::gc_collect);
-	set("=", specialform::equals);
-	set(">", specialform::greater);
-	set("<", specialform::less);
-	set("if", specialform::if_stmt);
-	set("->", specialform::lambda);
-
-	BINDSF(pow);
-	BINDSF(print);
-	BINDSF(quote);
-	BINDSF(eval);
-	BINDSF(load);
-	BINDSF(lambda);
-	BINDSF(set);
-	BINDSF(setq);
-	BINDSF(defun);
-	BINDSF(repl);
-	BINDSF(nand);
-	BINDSF(first);
-	BINDSF(rest);
+	// push the prompt config object to the stack
+	value::Object prompt("wulf> "); prompt.type = value::string;
+	set("*wulf/repl-prompt*", prompt);
 }
-
-
 
 
 static long hashstring(const char* str) {

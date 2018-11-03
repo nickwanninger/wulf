@@ -35,11 +35,11 @@
 }
 
 
-:[a-zA-Z][_a-zA-Z0-9\-\/\.:\?]* {
-	return TOK_SYMBOL;
+:[_a-zA-Z\-\/\.:\*\?$][_a-zA-Z0-9\-\/\.:\*\?$]* {
+	return TOK_KEYWORD;
 }
 
-[a-zA-Z][_a-zA-Z0-9\-\/\.:\?]* {
+[_a-zA-Z\/\.:\*\?$][_a-zA-Z0-9\-\/\.:\*\?$]* {
 	return TOK_IDENTIFIER;
 }
 
@@ -64,6 +64,7 @@
 
 [ \t\n] ; // ignore whitespace
 ";".*   ; // ignore comments
+
 
 . {
 	return TOK_UNKNOWN;

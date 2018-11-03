@@ -18,45 +18,32 @@
  */
 
 #include <value.hh>
+#include <vm.hh>
+#include <locale>
 
 using namespace value;
 
 
-static int objindex = 0;
 Object::Object() {
-	index = objindex++;
-	// std::cout << "constructed object " << index << "\n";
 }
 
+Object::Object(Type t) {
+	type = t;
+}
 Object::Object(double val) {
 	type = value::number;
 	number = val;
 	Object();
 }
-Object::Object(std::string val) {
-	type = value::ident;
-	ident = val;
-	Object();
+
+
+Object::Object(char* str) {
+	string = str;
 }
-Object::Object(std::vector<Object> val) {
-	type = value::list;
-	list = val;
-	Object();
+Object::Object(const char* str) {
+	string = strdup(str);
 }
 
-Object::Object(std::vector<std::string> args, Object* body) {
-	type = value::procedure;
-	proc.args = args;
-	proc.body = body;
-	Object();
-}
-
-Object::Object(specialformfn func) {
-	proc.special = true;
-	proc.func = func;
-	type = value::procedure;
-	Object();
-}
 Object::~Object() {}
 
 
@@ -68,19 +55,27 @@ std::string Object::to_string() {
 		case value::nil:
 			buf << "nil";
 			break;
+		case value::list: {
+				if (first == NULL) return "()";
+				buf << "(";
+				Object* curr = this;
+				while (curr->first != NULL) {
+					buf << curr->first->to_string();
+					if (curr->last != NULL) {
+						buf << " ";
+						curr = curr->last;
+					}
+				}
+				std::string str = buf.str();
+				str.pop_back();
+				str += ")";
+				return str;
+			}; break;
 
-		case value::list:
-			buf << "(";
-			for (int i = 0; i < list.size(); i++) {
-				buf << list[i].to_string();
-				if (i < list.size()-1) buf << " ";
-			}
-			buf << ")";
-			break;
-
+		case value::keyword:
 		case value::ident:
 		case value::string:
-			buf << ident;
+			buf << string;
 			break;
 
 		case value::number:
@@ -89,15 +84,12 @@ std::string Object::to_string() {
 
 			// procedure stringifier
 		case value::procedure:
-			if (proc.special) return "(special-form)";
 			buf << "(lambda (";
-			for (int i = 0; i < proc.args.size(); i++) {
-				buf << proc.args[i];
-				if (i < proc.args.size()-1) buf << " ";
+			for (int i = 0; i < argc; i++) {
+				buf << argv[i];
+				if (i != argc-1) buf << " ";
 			}
-			buf << ") ";
-			buf << proc.body->to_string();
-			buf << ")";
+			buf << ") ...)";
 			break;
 	}
 
@@ -106,335 +98,294 @@ std::string Object::to_string() {
 }
 
 
-Object Object::eval(State* st, scope::Scope* sc) {
-	// all these things need to evaluate to themselves
-	if (type == value::nil) return *this;
-	if (type == value::string) return *this;
-	if (type == value::number) return *this;
-	if (type == value::procedure) return *this;
-	// identifiers must find their value in the scope
-	if (type == value::ident) return sc->find(ident);
-	if (type == value::list) return eval_list(st, sc);
+#define BIN_CALL(name, op) \
+	if (!strcmp(name, callname)) { if (arg_count == 2) {bc->push(vm::Instruction(op)); return; } else { throw "attempt to call binary math operator with non-two arguments"; } }
 
-	// return a nil object
-	return Object();
+
+#define UNARY_CALL(name, op) \
+	if (!strcmp(name, callname)) { if (arg_count == 1) {bc->push(vm::Instruction(op)); return; } else { throw "unary operator requires one argument"; } }
+
+#define ifcall(method) if (!strcmp(first->string, #method))
+void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
+	// std::cout << "compile " <<  to_string() << "\n";
+	switch (type) {
+
+		case value::unknown:
+			bc->push(vm::Instruction(OP_NOP));
+			return;
+
+		case value::nil:
+			bc->push(vm::Instruction(OP_PUSH_NIL));
+			return;
+
+		case value::list: {
+				// first check if it's a special call or not. (quote, lambda, etc..)
+				if (first->type == value::ident) {
+
+					ifcall(def) {
+						if (last->first == NULL || last->last->first == NULL) throw "call to define requires at least two arguments";
+						auto *name = last->first;
+
+						// if the name is a list, I have to convert the syntactical sugar to
+						// a more usable syntax with lambdas
+						if (name->type == value::list) {
+							// the following code is quite spooky. plz be careful.
+							auto lambda = value::Object();
+							if (name->first->type != value::ident)
+								throw "call to def with function declaration syntax requires a function name as the first argument to the list";
+							lambda.type = value::list;
+							lambda.first = new value::Object("lambda");
+							lambda.first->type = value::ident;
+							lambda.last = new value::Object(value::list);
+							lambda.last->first = name->last;
+							lambda.last->last = new value::Object();
+							lambda.last->last->first = last->last->first;
+							lambda.last->last->last = new value::Object();
+							last->last->first = new value::Object(lambda);
+							last->first = name->first;
+							name = name->first;
+						}
+
+						if (name->type == value::ident) {
+							auto *val = last->last->first;
+							val->compile(machine, bc);
+							auto store = vm::Instruction(OP_STORE_GLOBAL);
+							store.string = name->string;
+							bc->push(store);
+							return;
+						}
+
+						throw "unexpected type in define name";
+						return;
+					}
+
+
+					// check for quote
+					ifcall(quote) {
+						if (last->first == NULL) throw "call to quote must have one argument";
+						last->first->compile_quote(machine, bc);
+						return;
+					}
+
+					ifcall(print) {
+						if (last->first == NULL) throw "call to print must have one argument";
+						last->first->compile(machine, bc);
+						bc->push(OP_PRINT);
+						return;
+					}
+
+					ifcall(lambda) {
+						if (last->first == NULL) throw "lambda call requires more arguments";
+						if (length() == 2) throw "lambda call missing body";
+						auto *arglist = last->first;
+
+						auto proc = new value::Object();
+						proc->type = value::procedure;
+						proc->code = new vm::Bytecode();
+
+						if (arglist->type == value::list) {
+							proc->argc = arglist->length();
+							proc->argv = new char*[proc->argc];
+							for (int i = 0; i < proc->argc; i++) {
+								value::Object *arg = (*arglist)[i];
+								char* name = strdup(arg->to_string().c_str());
+								proc->argv[i] = name;
+							}
+						} else if (arglist->type == value::ident) {
+							proc->argc = 1;
+							proc->argv = new char*[1];
+							proc->argv[0] = arglist->string;
+						} else {
+							throw "syntax error in lambda construction. arguments must be a single ident or a list of idents";
+							return;
+						}
+
+						auto expr = (*this)[2];
+
+
+						expr->compile(machine, proc->code);
+						proc->code->push(OP_RETURN);
+
+						vm::Instruction inst(OP_PUSH_RAW);
+						inst.object = proc;
+						bc->push(inst);
+						return;
+					}
+
+					ifcall(exit) {
+						if (last->first == NULL) {
+							vm::Instruction in(OP_PUSH_NUM);
+							in.number = 0;
+							bc->push(in);
+						} else {
+							last->first->compile(machine, bc);
+						}
+						bc->push(OP_EXIT);
+						return;
+					}
+
+					ifcall(car) {
+						if (last->first == NULL) throw "call to car requires one argument";
+						last->first->compile(machine, bc);
+						bc->push(OP_CAR);
+						return;
+					}
+
+					ifcall(cdr) {
+						if (last->first == NULL) throw "call to cdr requires one argument";
+						last->first->compile(machine, bc);
+						bc->push(OP_CDR);
+						return;
+					}
+
+					ifcall(repl) {
+						bc->push(OP_REPL);
+						return;
+					}
+
+					ifcall(=) {
+						if (last->first == NULL || last->last->first == NULL) throw "call to = requires two arguments";
+						last->first->compile(machine, bc);
+						last->last->first->compile(machine, bc);
+						bc->push(OP_EQUAL);
+						return;
+					}
+
+					ifcall(intern) {
+						if (last->first == NULL) throw "call to intern requires an argument";
+						last->first->compile(machine, bc);
+						bc->push(OP_INTERN);
+						return;
+					}
+				}
+
+				int arg_count = 0;
+				for (auto *arg = last; arg->type == value::list && arg->first != NULL; arg = arg->last) {
+					arg->first->compile(machine, bc);
+					arg_count++;
+				}
+
+				const char* callname = first->to_string().c_str();
+				BIN_CALL("+", OP_ADD);
+				BIN_CALL("-", OP_SUB);
+				BIN_CALL("*", OP_MUL);
+				BIN_CALL("/", OP_DIV);
+				BIN_CALL("%", OP_MOD);
+				BIN_CALL("and", OP_AND);
+				BIN_CALL("or", OP_OR);
+				UNARY_CALL("not", OP_NOT);
+
+				first->compile(machine, bc);
+				auto call = vm::Instruction(OP_CALL);
+				call.whole = arg_count;
+				bc->push(call);
+			} break;
+
+
+		case value::string:
+			bc->push(vm::Instruction(OP_PUSH_STR, string));
+			return;
+
+		case value::number:
+			bc->push(vm::Instruction(OP_PUSH_NUM, number));
+			return;
+
+		case value::procedure:
+			bc->push(vm::Instruction(OP_NOP));
+			break;
+
+		case value::ident: {
+				auto inst = vm::Instruction(OP_PUSH_LOOKUP);
+				inst.string = string;
+				if (!strcmp(string, "nil")) inst.opcode = OP_PUSH_NIL;
+				bc->push(inst);
+			}; break;
+
+		case value::keyword: {
+				 auto inst = vm::Instruction(OP_PUSH_RAW);
+				 inst.object = this;
+				 bc->push(inst);
+			 }; break;
+	}
 }
 
 
 
-Object Object::eval_list(State* st, scope::Scope* sc) {
-	if (list.size() == 0)
-		return Object();
 
-	/*
-	 * ope
-	 *   -rator
-	 *   -rand
-	 */
-	Object rator = list[0].eval(st, sc);
-	valuelist args;
-
-	for (int i = 1; i < list.size(); i++) {
-		args.push_back(list[i]);
+void Object::compile_quote(vm::Machine* m, vm::Bytecode* bc) {
+	// std::cout << "quote: " << to_string() << "\n";
+	if (type == value::ident) {
+		vm::Instruction inst(OP_PUSH_IDENT);
+		inst.string = string;
+		bc->push(inst);
+		return;
 	}
 
-	if (rator.type != value::procedure)
-		throw std::string("attempt to apply to non-procedure ") + list[0].to_string();
+	if (type == value::string) {
+		vm::Instruction inst(OP_PUSH_STR);
+		inst.string = string;
+		bc->push(inst);
+		return;
+	}
 
-	return rator.apply(st, sc, args);
+	if (type == value::nil) {
+		vm::Instruction inst(OP_PUSH_NIL);
+		bc->push(inst);
+		return;
+	}
+
+	if (type == value::keyword) {
+		vm::Instruction inst(OP_PUSH_RAW);
+		inst.object = this;
+		bc->push(inst);
+		return;
+	}
+
+	if (type == value::number) {
+		vm::Instruction inst(OP_PUSH_NUM);
+		inst.number = number;
+		bc->push(inst);
+		return;
+	}
+	if (type == value::number) {
+		vm::Instruction inst(OP_PUSH_NUM);
+		inst.number = number;
+		bc->push(inst);
+		return;
+	}
+
+	if (type == value::list) {
+		vm::Instruction inst(OP_PUSH_RAW);
+		inst.object = this;
+		bc->push(inst);
+		return;
+	}
 }
-
-
-Object Object::apply(State* st, scope::Scope* sc, std::vector<Object> args) {
-	scope::Scope newscope(sc);
-	if (proc.special) {
-		if (proc.func == NULL)
-			throw std::string("attempt to apply to special form that isn't bound");
-		return proc.func(st, &newscope, args);
-	}
-
-	// modify the args in place
-	for (auto& val : args ) {
-		val = val.eval(st, sc);
-	}
-
-	if (args.size() != proc.args.size())
-		throw "invalid argument count";
-
-	for (int i = 0; i < args.size(); i++) {
-		newscope.set(proc.args[i], args[i]);
-	}
-	return proc.body->eval(st, &newscope);
-}
-
 
 bool Object::is_true() {
 	return type != value::nil;
 }
 
-// std::string Value::to_string() {
-// 	return NULL;
-// }
 
+size_t Object::length() {
+	size_t len = 0;
 
-// Value* Value::eval(State* st, scope::Scope* sc) {
-// 	return new Nil();
-// }
+	Object* curr = this;
+	while (curr->last != NULL) {
+		if (curr->first != NULL) len++;
+		curr = curr->last;
+	}
+	return len;
+}
 
-// // ---------------- List ----------------
-
-// void List::push(Value *n) {
-// 	args.push_back(n);
-// }
-
-// Value *List::operator[](const int index) {
-// 	return args[index];
-// }
-
-// std::string List::to_string() {
-// 	std::ostringstream os;
-// 	os << "(";
-
-// 	for (int i = 0; i < args.size(); i++) {
-// 		auto& arg = args[i];
-// 		os << arg->to_string();
-// 		if (i < args.size()-1)
-// 			os << " ";
-// 	}
-// 	os << ")";
-// 	return os.str();
-// }
-
-
-// Value* List::eval(State* st, scope::Scope* sc) {
-// 	if (args.size() == 0) {
-// 		return new Nil();
-// 	}
-
-// 	/*
-// 	 * ope
-// 	 *   -rator
-// 	 *   -rand
-// 	 */
-
-// 	auto rator = args[0]->eval(st, sc);
-// 	auto rand = NULL;
-// 	// build the vector for the procedure application
-// 	valuelist fargs;
-// 	for (int i = 1; i < args.size(); i++) {
-// 		fargs.push_back(args[i]);
-// 	}
-// 	Procedure* proc = static_cast<Procedure*>(rator);
-// 	if (proc->type == procedure) {
-// 		return proc->apply(st, sc, fargs);
-// 	}
-// 	if (rator->type != procedure) {
-// 		std::string err = "attempt to apply to non-procedure '";
-// 		err += args[0]->to_string();
-// 		err += "'";
-// 		throw err;
-// 	}
-// 	return NULL;
-// }
-
-
-// // ---------------- Ident ----------------
-
-// Ident::Ident(char* val) {
-// 	type = ident;
-// 	value = std::string(val);
-// }
-
-// Ident::Ident(const char* val) {
-// 	value = std::string(val);
-// 	type = ident;
-// }
-
-// Ident::Ident(std::string v) {
-// 	value = v;
-// 	type = ident;
-// }
-
-
-// std::string Ident::to_string() {
-// 	return value;
-// }
-
-// Value* Ident::eval(State* st, scope::Scope* sc) {
-// 	return sc->find(value);
-// }
-
-
-// // ---------------- Number ----------------
-
-// /*
-//  * overloaded number constructor that
-//  * parses a string value
-//  */
-// Number::Number(char* val) {
-// 	value = std::atof(val);
-// 	type = number;
-// }
-
-// /*
-//  * overloaded Number constructor that
-//  * takes a long
-//  */
-// Number::Number(long val) {
-// 	value = (double)val;
-// 	type = number;
-// }
-
-// /*
-//  * overloaded Number constructor that
-//  * takes a double
-//  */
-// Number::Number(double val) {
-// 	value = val;
-// 	type = number;
-// }
-
-// /*
-//  * default Number constructor
-//  */
-// Number::Number() {
-// 	type = number;
-// 	value = 0;
-// }
-
-// // numbers always evaluate to themselves
-// Value* Number::eval(State* st, scope::Scope* sc) {
-// 	return this;
-// }
-
-// std::string Number::to_string() {
-// 	std::ostringstream os;
-// 	os.precision(10);
-// 	os << value;
-// 	return os.str();
-// }
-
-
-// // ---------------- Nil ----------------
-
-// Nil::Nil() {
-// 	type = nil;
-// }
-
-// std::string Nil::to_string() {
-// 	return std::string("nil");
-// }
-
-// // nil just evaulates to itself, always
-// value::Value* Nil::eval(State* st, scope::Scope* sc) {
-// 	return this;
-// }
-
-
-// // ---------------- Procedure ----------------
-
-// Procedure::Procedure(specialformfn func) {
-// 	type = procedure;
-// 	is_special_form = true;
-// 	cfunc = func;
-// }
-
-// Procedure::Procedure(stringlist ar, Value* bd) {
-// 	type = procedure;
-// 	args = ar;
-// 	body = bd;
-// }
-
-// Value* Procedure::apply(State* st, scope::Scope* sc, valuelist arglist) {
-// 	if (is_special_form) {
-// 		if (cfunc == NULL) {
-// 			throw std::string("attempt to apply to special form that isn't bound");
-// 		}
-// 		return cfunc(st, sc->spawn_child(), arglist);
-// 	}
-
-// 	std::vector<Value*> vals;
-// 	for (auto a : arglist)
-// 		vals.push_back(a->eval(st, sc));
-
-// 	scope::Scope* newscope = sc->spawn_child();
-// 	if (args.size() != args.size()) {
-// 		throw std::string("argument count invalid");
-// 	}
-
-// 	for (int i = 0; i < vals.size(); i++) {
-// 		newscope->set(args[i], vals[i]);
-// 	}
-// 	auto res = body->eval(st, newscope);
-// 	return res;
-// }
-
-// std::string Procedure::to_string() {
-
-// 	if (is_special_form) {
-// 		return "(special-form)";
-// 	}
-
-// 	std::ostringstream buf;
-
-// 	buf << "(lambda (";
-
-// 	for (int i = 0; i < args.size(); i++) {
-// 		buf << args[i];
-// 		if (i < args.size()-1) buf << " ";
-// 	}
-
-// 	buf << ") ";
-// 	buf << body->to_string();
-// 	buf << ")";
-// 	return buf.str();
-// }
-
-// Value* Procedure::eval(State* st, scope::Scope* sc) {
-// 	return this;
-// }
-
-
-
-// // ------------------ String ------------------
-
-
-// String::String(char* val) {
-// 	value = std::string(val);
-// 	type = string;
-// }
-
-// String::String(const char* val) {
-// 	value = std::string(val);
-// 	type = string;
-// }
-
-// String::String(std::string val) {
-// 	value = val;
-// 	type = string;
-// }
-// // strings evaluate to themselves
-// Value* String::eval(State* st, scope::Scope* sc) {
-// 	return this;
-// }
-// std::string String::to_string() {
-// 	return value;
-// }
-
-
-// #define CHECK_SIG(name) \
-// 	bool value::name(Value* val)
-
-// #define VALUE_T_CHECK(name, type) \
-// 	CHECK_SIG(name) { return dynamic_cast<type>(val) == NULL; }
-
-// VALUE_T_CHECK(is_number, value::Nil*)
-// VALUE_T_CHECK(is_string, value::String*)
-// VALUE_T_CHECK(is_list, value::List*)
-
-// CHECK_SIG(is_true) {
-// 	// if the dynamic_cast of a value to nil is a NULL ptr,
-// 	// it must be true, because it's not a nil
-// 	return val->type != nil;
-// }
+Object* Object::operator[](int index) {
+	size_t len = 0;
+	Object* curr = this;
+	while (curr->last != NULL) {
+		if (len == index) return curr->first;
+		if (curr->first != NULL) len++;
+		curr = curr->last;
+	}
+	return NULL;
+}
 

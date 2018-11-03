@@ -56,7 +56,7 @@ char* read_file_contents(FILE* f);
 #define TOK_LPAREN      4
 #define TOK_RPAREN      5
 #define TOK_OPERATOR    6
-#define TOK_SYMBOL      7
+#define TOK_KEYWORD     7
 #define TOK_STRING      8
 #define TOK_QUOTE       9
 

@@ -25,52 +25,17 @@
 #include <thread>
 #include <value.hh>
 #include <gc/gc.h>
-
+#include <vm.hh>
+#include <value.hh>
+#include <parser.hh>
+#include <scanner.hh>
 // #include <gc/gc_cpp.h>
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
 
-static void xfinalizer(GC_PTR obj, GC_PTR x) {
-	printf("%p collected\n", obj);
-}
-
-void* xmalloc(size_t size) {
-	void* ptr = GC_MALLOC(size);
-	// std::cout << "allocated " << size << " bytes\n";
-	return ptr;
-}
-
-void* operator new(size_t size) {
-	return xmalloc(size);
-}
-void* operator new[](size_t size) {
-	return xmalloc(size);
-}
-
-#ifdef __GLIBC__
-#define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
-#endif
-void operator delete(void* ptr) _NOEXCEPT {
-	GC_FREE(ptr);
-}
-void operator delete[](void* ptr) _NOEXCEPT {
-	GC_FREE(ptr);
-}
-
-
-
-void gc_thread() {
-	while (true) {
-		sleep(1);
-		GC_gcollect();
-	}
-}
 
 int main(int argc, char** argv) {
-	//std::thread gcthread(gc_thread);
 	GC_init();
-	GC_enable_incremental();
-
 
 	auto *state = new State();
 
@@ -101,3 +66,32 @@ int main(int argc, char** argv) {
 }
 
 
+
+
+// garbage collection crap
+static void xfinalizer(GC_PTR obj, GC_PTR x) {
+	printf("%p collected\n", obj);
+}
+
+void* xmalloc(size_t size) {
+	void* ptr = GC_MALLOC(size);
+	// printf("allocated %lu bytes to %p\n", size, ptr);
+	return ptr;
+}
+
+void* operator new(size_t size) {
+	return xmalloc(size);
+}
+void* operator new[](size_t size) {
+	return xmalloc(size);
+}
+
+#ifdef __GLIBC__
+#define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
+#endif
+void operator delete(void* ptr) _NOEXCEPT {
+	GC_FREE(ptr);
+}
+void operator delete[](void* ptr) _NOEXCEPT {
+	GC_FREE(ptr);
+}
