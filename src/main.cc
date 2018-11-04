@@ -29,7 +29,9 @@
 #include <value.hh>
 #include <parser.hh>
 #include <scanner.hh>
-// #include <gc/gc_cpp.h>
+#include <getopt.h>
+#include <unistd.h>
+
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
 
@@ -37,9 +39,20 @@
 int main(int argc, char** argv) {
 	GC_init();
 
-	auto *state = new State();
+	bool interactive = false;
 
-	if (argc <= 1) {
+	auto *state = new State();
+	char opt;
+	while ((opt = getopt(argc, argv, "i")) != -1) {
+		switch (opt) {
+		case 'i': interactive = true; break;
+		default:
+				fprintf(stderr, "Usage: %s [-i] [file]\n", argv[0]);
+				exit(EXIT_FAILURE);
+		}
+	}
+
+	if (optind >= argc) {
 		if (isatty(fileno(stdin))) {
 			state->run_repl();
 		} else {
@@ -53,12 +66,20 @@ int main(int argc, char** argv) {
 		delete state;
 		exit(0);
 	}
+
+
+	std::cout << "here\n";
 	// if there was a file argument, evaluate that instead
-	char* filepath = argv[1];
+	char* filepath = argv[optind];
 	state->eval_file(filepath);
 
-	GC_gcollect();
+	// if the user requested interactive mode, do that.
+	if (interactive) {
+		state->run_repl();
+	}
 
+	// run a garbage collection run
+	GC_gcollect();
 
 	delete state;
 

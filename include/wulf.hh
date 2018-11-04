@@ -48,6 +48,7 @@ extern FILE* yyin;
 
 char* read_file_contents(char*);
 char* read_file_contents(FILE* f);
+std::string unescape(const std::string& s);
 
 #define TOK_EOF         0
 #define TOK_UNKNOWN     1

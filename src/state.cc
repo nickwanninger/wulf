@@ -12,9 +12,18 @@ State::State() {
 	scope->install_default_bindings();
 	machine = new vm::Machine();
 	machine->state = this;
+
+	// load some basic important functions
+	eval("(def (exit) (syscall 1 0))");
+	eval("(def (die n) (syscall 1 n))");
+	eval("(def (print m) (syscall 7 m))");
+	eval("(def (load file) (syscall 8 file))");
 }
 
 
+void State::eval(const char* source) {
+	eval((char*)source);
+}
 void State::eval(char* source) {
 	// lex the tokens from the source
 	auto toks = lex(source);
@@ -29,12 +38,20 @@ void State::eval(char* source) {
 		return;
 	}
 
-	vm::Bytecode bc;
 	bool print_bytecode = false;
 	// machine->debug = true;
 	for (auto& node : nodes) {
-		// empty the instructions for this top level node
-		bc.instructions.empty();
+
+		// create bytecode for this node.
+		// each top level node gets it's own bytecode to evaluate in a "sandbox"
+		// (in relation to the other things on the top level)
+		// this is because each top level statement should be able to be evaluated
+		// individually aside from assignments (which work in an enviroment like this)
+		// because that's the only time you would use the returned value from a TLS
+		vm::Bytecode bc;
+
+		// reset the VM's stack. this is only done because it's top level and we don't care
+		// about the previous nodes' effect on the stack
 		machine->stack->index = 0;
 
 		// attempt to compile the bytecode
@@ -48,7 +65,7 @@ void State::eval(char* source) {
 
 		if (print_bytecode)
 			for (auto& in : bc.instructions) {
-				std::cout << ">> " << in.to_string() << "\n";
+				std::cout << "\t" << in.to_string() << "\n";
 			}
 
 		// attempt to evaluate the bytecode
@@ -129,6 +146,7 @@ void State::run_repl() {
 		// free the buffer provided by linenoise
 		free(buf);
 	}
+	repl = false;
 }
 
 

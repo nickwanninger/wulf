@@ -43,13 +43,13 @@
 	return TOK_IDENTIFIER;
 }
 
+ /* special case some other identifier regex */
+[\d\+\-\*\/\.\-><=]* {
+	return TOK_IDENTIFIER;
+}
 
 -?([0-9]+([.][0-9]*)?|[.][0-9]+) {
 	return TOK_NUMBER;
-}
-
-[\d\+\-\*\/\.\-><=]* {
-	return TOK_IDENTIFIER;
 }
 
 

@@ -17,6 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <wulf.hh>
 #include <value.hh>
 #include <vm.hh>
 #include <locale>
@@ -74,10 +75,12 @@ std::string Object::to_string() {
 
 		case value::keyword:
 		case value::ident:
-		case value::string:
 			buf << string;
 			break;
 
+		case value::string:
+			buf << unescape(string);
+			break;
 		case value::number:
 			buf << number;
 			break;
@@ -159,18 +162,25 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
+					ifcall(syscall) {
+						vm::Instruction inst(OP_SYSCALL);
+						if (length() != 3) throw "syscall requires two arguments, a number and any value (can be nil if the syscall would ignore it)";
+
+						inst.whole = length()-1;
+
+						for (int i = 1; i < length(); i++) {
+							(*this)[i]->compile(machine, bc);
+						}
+
+						bc->push(inst);
+						return;
+					}
+
 
 					// check for quote
 					ifcall(quote) {
 						if (last->first == NULL) throw "call to quote must have one argument";
 						last->first->compile_quote(machine, bc);
-						return;
-					}
-
-					ifcall(print) {
-						if (last->first == NULL) throw "call to print must have one argument";
-						last->first->compile(machine, bc);
-						bc->push(OP_PRINT);
 						return;
 					}
 
@@ -238,10 +248,6 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
-					ifcall(repl) {
-						bc->push(OP_REPL);
-						return;
-					}
 
 					ifcall(=) {
 						if (last->first == NULL || last->last->first == NULL) throw "call to = requires two arguments";

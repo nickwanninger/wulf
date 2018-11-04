@@ -29,6 +29,7 @@ public:
 	 * evalueate various source into the scope
 	 */
 	void eval(char*);
+	void eval(const char*);
 	void eval_file(char*);
 
 	/*

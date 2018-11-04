@@ -1,3 +1,4 @@
+#include <wulf.hh>
 #include <vm.hh>
 #include <iostream>
 #include <unistd.h>
@@ -5,6 +6,7 @@
 #include <sys/mman.h>
 #include <gc/gc.h>
 #include <stack>
+#include <syscall.hh>
 using namespace vm;
 
 #define STACK_GROWTH_RATIO 2
@@ -162,15 +164,15 @@ std::string Instruction::to_string() {
 
 		OP_STRING(OP_CALL) << "\t" << whole; break;
 		OP_STRING(OP_CONS); break;
-		OP_STRING(OP_PRINT); break;
 		OP_STRING(OP_EXIT); break;
 		OP_STRING(OP_CAR); break;
 		OP_STRING(OP_CDR); break;
-		OP_STRING(OP_REPL); break;
 		OP_STRING(OP_EQUAL); break;
 		OP_STRING(OP_INTERN); break;
 		OP_STRING(OP_PUSH_RAW) << "\t" << object->to_string(); break;
 		OP_STRING(OP_RETURN); break;
+		OP_STRING(OP_GOTO) << "\t" << whole; break;
+		OP_STRING(OP_SYSCALL) << "\t" << object->to_string(); break;
 	}
 	return buf.str();
 }
@@ -332,13 +334,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				} break;
 
 
-			case OP_PRINT: {
-					auto val = stack->pop();
-					std::cout << val.to_string() << "\n";
-					pc++;
-				}; break;
-
-
 			case OP_EXIT: {
 					auto code = stack->pop();
 					if (code.type == value::number) exit((int)code.number);
@@ -360,10 +355,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					pc++;
 				}; break;
 			case OP_NOP:
-				pc++;
-				break;
-			case OP_REPL:
-				state->run_repl();
 				pc++;
 				break;
 
@@ -422,10 +413,44 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					pc++;
 				}; break;
 
+
+			case OP_SYSCALL: {
+					auto arg2 = stack->pop();
+					auto arg1 = stack->pop();
+
+					if (arg1.type != value::number) throw "attempt to call syscall with non-number as first argument";
+					int syscalli = arg1.number;
+
+					// 0 = exit
+					if (syscalli == SYS_EXIT) {
+						if (arg2.type == value::number) {
+							exit(arg2.number);
+						} else {
+							std::cout << arg2.to_string() << "\n";
+							exit(1);
+						}
+					}
+
+					if (syscalli == SYS_PRINT) {
+						std::cout << arg2.to_string();
+					}
+
+					if (syscalli == SYS_LOAD) {
+						if (arg2.type != value::string) throw "syscall load requires a string filepath";
+						bool repls = state->repl;
+						state->repl = false;
+						char* path = (char*)arg2.to_string().c_str();
+						state->eval_file(path);
+						state->repl = repls;
+					}
+					pc++;
+				}; break;
+
 			default:
 				std::ostringstream err;
 				err << "Unimplemented Instruction";
-				err << " (0x" << std::hex << int(in.opcode) << ")";
+				err << " (0x" << std::hex << int(in.opcode) << ")  ";
+				err << in.to_string();
 				throw err.str();
 		}
 

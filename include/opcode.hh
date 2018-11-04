@@ -39,12 +39,16 @@ typedef unsigned char opcode_t;
 // push 1
 // cons
 #define OP_CONS       0x71
-#define OP_PRINT      0x72
+#define OP_PRINT_     0x72
 #define OP_EXIT       0x73
 #define OP_CAR        0x74
 #define OP_CDR        0x75
-#define OP_REPL       0x76
 // compare the top two values on the stack
 #define OP_EQUAL      0x77
 #define OP_INTERN     0x78
 #define OP_RETURN     0x79
+#define OP_GOTO       0x7a
+// syscall takes over the need for more basic opcodes.
+// it uses the integer value in the instruction to store
+// how many arguments were passed to it
+#define OP_SYSCALL    0x7b
