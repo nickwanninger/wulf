@@ -33,6 +33,7 @@ namespace vm {
 	class Bytecode {
 		public:
 			std::vector<Instruction> instructions;
+			value::Object *lambda;
 			void push(Instruction);
 	};
 
