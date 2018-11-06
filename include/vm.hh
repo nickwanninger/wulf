@@ -19,7 +19,7 @@ namespace vm {
 			opcode_t opcode;
 			union {
 				double number;
-				int whole;
+				long long whole;
 				char* string;
 				value::Object* object;
 			};
@@ -33,8 +33,8 @@ namespace vm {
 	class Bytecode {
 		public:
 			std::vector<Instruction> instructions;
-			value::Object *lambda;
-			void push(Instruction);
+			value::Object *lambda; // a pointer to the definition for stringification
+			Instruction & push(Instruction);
 	};
 
 	class Stack {

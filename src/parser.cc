@@ -171,13 +171,16 @@ value::Object* Parser::parse_expr() {
 				next();
 				return kw;
 			}
-		case TOK_STRING:
-			auto s = new value::Object(tok.value);
-			s->type = value::string;
-			s->string = tok.value;
-			next();
-			return s;
+		case TOK_STRING: {
+				auto s = new value::Object(tok.value);
+				s->type = value::string;
+				s->string = tok.value;
+				next();
+				return s;
+			}
 	}
+
+	throw "oops";
 	next();
 	return new value::Object();
 }

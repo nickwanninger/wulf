@@ -35,6 +35,17 @@ typedef std::vector<value::Object> valuelist;
 
 
 namespace value {
+
+	enum ArgType {
+		plain,
+		rest,
+	};
+	class Argument {
+		public:
+			char* name;
+			ArgType type = plain;
+	};
+
 	/*
 	 * the Type enum is a listing of various types an object can embody
 	 */
@@ -48,6 +59,7 @@ namespace value {
 		keyword,
 		nil,
 	};
+
 
 	class Object {
 		public:
@@ -70,8 +82,7 @@ namespace value {
 				 */
 				struct {
 					vm::Bytecode* code;
-					uint8_t argc;
-					char** argv;
+					std::vector<Argument> *args;
 				};
 			};
 			/*
@@ -83,9 +94,10 @@ namespace value {
 			Object(double);
 			Object(char*);
 			Object(const char*);
-			std::string to_string();
+			std::string to_string(bool human = false);
 			void compile(vm::Machine*, vm::Bytecode*);
 			void compile_quote(vm::Machine*, vm::Bytecode*);
+			void append(value::Object);
 			bool is_true();
 			size_t length();
 			Object* operator[] (int);

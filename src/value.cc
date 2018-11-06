@@ -29,7 +29,7 @@ Object::Object() {
 }
 
 Object::Object(Type t) {
-	type = t;
+	this->type = t;
 }
 Object::Object(double val) {
 	type = value::number;
@@ -48,7 +48,7 @@ Object::Object(const char* str) {
 Object::~Object() {}
 
 
-std::string Object::to_string() {
+std::string Object::to_string(bool human) {
 	std::ostringstream buf;
 
 	switch (type) {
@@ -79,7 +79,13 @@ std::string Object::to_string() {
 			break;
 
 		case value::string:
-			buf << unescape(string);
+			if (human) {
+				buf << unescape(string);
+			} else {
+				buf << '"';
+				buf << string;
+				buf << '"';
+			}
 			break;
 		case value::number:
 			buf << number;
@@ -87,12 +93,7 @@ std::string Object::to_string() {
 
 			// procedure stringifier
 		case value::procedure:
-			buf << "(lambda (";
-			for (int i = 0; i < argc; i++) {
-				buf << argv[i];
-				if (i != argc-1) buf << " ";
-			}
-			buf << ") ...)";
+			buf << code->lambda->to_string();
 			break;
 	}
 
@@ -102,13 +103,17 @@ std::string Object::to_string() {
 
 
 #define BIN_CALL(name, op) \
-	if (!strcmp(name, callname)) { if (arg_count == 2) {bc->push(vm::Instruction(op)); return; } else { throw "attempt to call binary math operator with non-two arguments"; } }
+	if (!strcmp(name, callname)) { if (arg_count == 2) {bc->push(vm::Instruction(op)); return; } else { throw "attempt to call binary math operator requires two arguments"; } }
 
 
 #define UNARY_CALL(name, op) \
 	if (!strcmp(name, callname)) { if (arg_count == 1) {bc->push(vm::Instruction(op)); return; } else { throw "unary operator requires one argument"; } }
 
 #define ifcall(method) if (!strcmp(first->string, #method))
+
+
+
+
 void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 	// std::cout << "compile " <<  to_string() << "\n";
 	switch (type) {
@@ -122,11 +127,13 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 			return;
 
 		case value::list: {
+
+				if (length() == 0) throw "invalid syntax ()";
 				// first check if it's a special call or not. (quote, lambda, etc..)
 				if (first->type == value::ident) {
 
 					ifcall(def) {
-						if (last->first == NULL || last->last->first == NULL) throw "call to define requires at least two arguments";
+						if (last->first == NULL || last->last->first == NULL) throw "call to def requires at least two arguments";
 						auto *name = last->first;
 
 						// if the name is a list, I have to convert the syntactical sugar to
@@ -137,7 +144,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 							if (name->first->type != value::ident)
 								throw "call to def with function declaration syntax requires a function name as the first argument to the list";
 							lambda.type = value::list;
-							lambda.first = new value::Object("lambda");
+							lambda.first = new value::Object("fn");
 							lambda.first->type = value::ident;
 							lambda.last = new value::Object(value::list);
 							lambda.last->first = name->last;
@@ -184,29 +191,55 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
-					ifcall(lambda) {
-						if (last->first == NULL) throw "lambda call requires more arguments";
-						if (length() == 2) throw "lambda call missing body";
+					ifcall(fn) {
+						if (last->first == NULL) throw "'fn' call requires more arguments";
+						if (length() == 2) throw "'fn' call missing body";
 						auto *arglist = last->first;
 
 						auto proc = new value::Object();
 						proc->type = value::procedure;
 						proc->code = new vm::Bytecode();
 
+						proc->args = new std::vector<Argument>();
+
 						if (arglist->type == value::list) {
-							proc->argc = arglist->length();
-							proc->argv = new char*[proc->argc];
-							for (int i = 0; i < proc->argc; i++) {
-								value::Object *arg = (*arglist)[i];
-								char* name = strdup(arg->to_string().c_str());
-								proc->argv[i] = name;
+
+
+
+							auto args = *arglist;
+							int len = arglist->length();
+							for (int i = 0; i < len; i++) {
+								auto arg = *args[i];
+								if (arg.type == value::keyword) {
+
+									if (i > len-1) throw "keyword argument is missing it's ident argument";
+									if (!strcmp(arg.string, ":rest")) {
+										arg = *args[++i];
+										if (arg.type != value::ident) throw ":rest argument modifier requires a following ident as a name";
+										Argument a;
+										a.type = value::rest;
+										a.name = strdup(arg.string);
+										proc->args->push_back(a);
+										if (i < len-1) {
+											throw ":rest argument must be the last argument";
+										}
+									} else throw "unknown keyword used in argument list";
+
+								} else if (arg.type == value::ident) {
+									Argument a;
+									a.name = strdup(arg.string);
+									proc->args->push_back(a);
+								} else throw "Syntax Error: argument list in function must be idents or keywords";
 							}
+
+
 						} else if (arglist->type == value::ident) {
-							proc->argc = 1;
-							proc->argv = new char*[1];
-							proc->argv[0] = arglist->string;
+							Argument a;
+							a.name = arglist->string;
+							a.type = value::plain;
+							proc->args->push_back(a);
 						} else {
-							throw "syntax error in lambda construction. arguments must be a single ident or a list of idents";
+							throw "syntax error in fn construction. arguments must be a single ident or a list of idents";
 							return;
 						}
 
@@ -215,6 +248,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 
 						expr->compile(machine, proc->code);
 						proc->code->push(OP_RETURN);
+						proc->code->lambda = this;
 
 						vm::Instruction inst(OP_PUSH_RAW);
 						inst.object = proc;
@@ -248,6 +282,27 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
+					ifcall(do) {
+						auto len = length();
+						for (int i = 1; i < len; i++) {
+							(*this)[i]->compile(machine, bc);
+							if (i < len-1) bc->push(OP_SKIP);
+						}
+						return;
+					}
+
+					ifcall(cons) {
+						if (length() != 3) throw "call to cons requires 2 arguments";
+
+						auto self = *this;
+
+
+						self[2]->compile(machine, bc);
+						self[1]->compile(machine, bc);
+						bc->push(OP_CONS);
+						return;
+					}
+
 
 					ifcall(=) {
 						if (last->first == NULL || last->last->first == NULL) throw "call to = requires two arguments";
@@ -261,6 +316,51 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						if (last->first == NULL) throw "call to intern requires an argument";
 						last->first->compile(machine, bc);
 						bc->push(OP_INTERN);
+						return;
+					}
+
+					ifcall(if) {
+						// cache the len cause finding the length of a linked list
+						// takes time.
+						int len = length();
+						auto self = *this;
+						if (len < 2) throw "call to if requires a predicate, then, and optionally a false";
+						if (len < 3) throw "call to if requires at least a truthy value";
+						if (len < 4) append(value::Object()); // if there isn't an else value, make it a nil
+
+						self[1]->compile(machine, bc);
+						// push a branch onto the bytecode stack and keep a reference to it.
+						// we'll wanna update this branch instruction's offset to the location
+						// of the false code.
+						// the first thing we do is push a nop to the jump index
+						// we will update it's index later on.
+						vm::Instruction branch(OP_JUMP_FALSE);
+						long long bri = bc->instructions.size();
+						bc->push(OP_NOP);
+						self[2]->compile(machine, bc);
+
+						// we need to add unconditional branches to the joining block
+						long long theni = bc->instructions.size();
+						bc->push(OP_JUMP);
+
+
+						branch.whole = bc->instructions.size();
+						bc->instructions[bri] = branch;
+						self[3]->compile(machine, bc);
+						bc->push(OP_NOP);
+						bc->instructions[theni].whole = bc->instructions.size() - 1;;
+
+						return;
+					}
+
+					ifcall(<) {
+
+						if (length() != 3) throw "call to '<' requires 2 arguments";
+						auto self = *this;
+						self[1]->compile(machine, bc);
+						self[2]->compile(machine, bc);
+						bc->push(OP_LT);
+
 						return;
 					}
 				}
@@ -395,3 +495,16 @@ Object* Object::operator[](int index) {
 	return NULL;
 }
 
+
+void Object::append(value::Object obj) {
+	if (type != value::list) throw "unable to push_back to non-list";
+	auto curr = this;
+
+	while (curr->last != NULL) {
+		curr = curr->last;
+	}
+
+	curr->last = new value::Object(value::list);
+	curr->last->type = value::list;
+	curr->first = new value::Object(obj);
+}

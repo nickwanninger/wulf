@@ -22,6 +22,7 @@ typedef unsigned char opcode_t;
 #define OP_MUL        0x52
 #define OP_DIV        0x53
 #define OP_MOD        0x54
+#define OP_LT         0x56
 
 // logic operations are always of the form 0x6n
 #define OP_AND        0x60
@@ -47,8 +48,13 @@ typedef unsigned char opcode_t;
 #define OP_EQUAL      0x77
 #define OP_INTERN     0x78
 #define OP_RETURN     0x79
-#define OP_GOTO       0x7a
 // syscall takes over the need for more basic opcodes.
 // it uses the integer value in the instruction to store
 // how many arguments were passed to it
 #define OP_SYSCALL    0x7b
+
+
+// jump operations take an absolue pc in the "whole" field
+// and when it calls, it will set pc to the location
+#define OP_JUMP       0x7c
+#define OP_JUMP_FALSE 0x7d

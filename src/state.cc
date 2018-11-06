@@ -3,9 +3,9 @@
 #include <value.hh>
 #include <color.hh>
 #include <fstream>
-#include <linenoise.h>
 #include <parser.hh>
-
+#include <readline/readline.h>
+#include <readline/history.h>
 
 State::State() {
 	scope = new scope::Scope();
@@ -13,11 +13,22 @@ State::State() {
 	machine = new vm::Machine();
 	machine->state = this;
 
-	// load some basic important functions
+	// define some basic functions
 	eval("(def (exit) (syscall 1 0))");
 	eval("(def (die n) (syscall 1 n))");
-	eval("(def (print m) (syscall 7 m))");
-	eval("(def (load file) (syscall 8 file))");
+
+	eval("(def (puts m) (syscall 7 m))");
+	eval("(def (print x) (do (puts x) (puts \"\n\")))");
+
+	eval("(def (load path) (syscall 8 path))");
+	eval("(def (type x) (syscall 9 x))");
+	eval("(def (sh :rest args) (syscall 10 args))");
+	eval("(def *wulf/repl-prompt* \": \")");
+	eval("(def t 't)");
+	// setup the check functions
+	eval("(def (nil? x) (= x nil))");
+	eval("(def (true? x) (not (= x nil)))");
+	eval("(def (zero? x) (= x 0))");
 }
 
 
@@ -64,8 +75,8 @@ void State::eval(char* source) {
 
 
 		if (print_bytecode)
-			for (auto& in : bc.instructions) {
-				std::cout << "\t" << in.to_string() << "\n";
+			for (int i = 0; i < bc.instructions.size(); i++) {
+				printf("0x%04x %s\n", i, bc.instructions[i].to_string().c_str());
 			}
 
 		// attempt to evaluate the bytecode
@@ -90,7 +101,8 @@ void State::eval(char* source) {
 				name << repl_index;
 				scope->root->set(name.str(), top);
 				repl_index++;
-				std::cout << name.str() << " = " << top.to_string() << "\n";
+				if (top.type != value::nil)
+					std::cout << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
 			}
 		}
 	}
@@ -131,16 +143,27 @@ void State::eval_file(char* source) {
 
 void State::run_repl() {
 	std::string line;
-	linenoiseSetMultiLine(1);
 	repl = true;
 	char* buf;
 	while (true) {
 		auto prompt = scope->find("*wulf/repl-prompt*");
-		buf = linenoise(prompt.to_string().c_str());
+
+
+		std::ostringstream pr;
+		pr << "[";
+		pr << KBLU;
+		pr << repl_index;
+		pr << RST;
+		pr << "]";
+		pr << prompt.to_string(true);
+
+		buf = readline(pr.str().c_str());
+
+		std::cout << RST;
 		if (buf == nullptr) break;
 
 		if (strlen(buf) > 0) {
-			linenoiseHistoryAdd(buf);
+			add_history(buf);
 			eval(buf);
 		}
 		// free the buffer provided by linenoise

@@ -78,12 +78,9 @@ void Scope::set(const char* name, double val) {
 	set(#name, specialform::name)
 
 void Scope::install_default_bindings() {
-	value::Object t("t"); t.type = value::ident;
-	set("t", t);
+	//value::Object t("t"); t.type = value::ident;
+	//set("t", t);
 
-	// push the prompt config object to the stack
-	value::Object prompt("wulf> "); prompt.type = value::string;
-	set("*wulf/repl-prompt*", prompt);
 }
 
 

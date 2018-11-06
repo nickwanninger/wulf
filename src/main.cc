@@ -68,7 +68,6 @@ int main(int argc, char** argv) {
 	}
 
 
-	std::cout << "here\n";
 	// if there was a file argument, evaluate that instead
 	char* filepath = argv[optind];
 	state->eval_file(filepath);

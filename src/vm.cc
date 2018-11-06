@@ -19,7 +19,7 @@ typedef stackval* stackblock;
 
 // constructor
 Stack::Stack() {
-	stack_block_size = getpagesize() / sizeof(stackval);
+	stack_block_size = 32;
 	stacksize = stack_block_size;
 	block_count = 1;
 	blocks = new stackval*[block_count];
@@ -63,6 +63,8 @@ stackval& Stack::ref(long i) {
 
 
 void Stack::resize(long newsize) {
+
+	std::cout << "resizing stack from " << stacksize << " to " << newsize << "\n";
 	int new_block_count = fmax(ceil(newsize / stack_block_size), 1);
 	if (newsize < stack_block_size) return;
 	newsize = new_block_count * stack_block_size;
@@ -157,6 +159,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_MUL); break;
 		OP_STRING(OP_DIV); break;
 		OP_STRING(OP_MOD); break;
+		OP_STRING(OP_LT); break;
 		// logic operations
 		OP_STRING(OP_AND); break;
 		OP_STRING(OP_OR); break;
@@ -171,15 +174,17 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_INTERN); break;
 		OP_STRING(OP_PUSH_RAW) << "\t" << object->to_string(); break;
 		OP_STRING(OP_RETURN); break;
-		OP_STRING(OP_GOTO) << "\t" << whole; break;
+		OP_STRING(OP_JUMP) << "\t" << whole; break;
+		OP_STRING(OP_JUMP_FALSE) << "\t" << whole; break;
 		OP_STRING(OP_SYSCALL) << "\t" << object->to_string(); break;
 	}
 	return buf.str();
 }
 
 
-void Bytecode::push(Instruction i) {
+Instruction & Bytecode::push(Instruction i) {
 	instructions.push_back(i);
+	return instructions[instructions.size()-1];
 }
 
 
@@ -272,6 +277,21 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 			case OP_MUL: OP_BINARY(*);
 			case OP_DIV: OP_BINARY(/);
 
+
+			case OP_LT: {
+					auto a2 = stack->pop();
+					auto a1 = stack->pop();
+					if (a2.type != a1.type || a2.type != value::number) throw "attempt to compare two non-numbers";
+					if (a1.number < a2.number) {
+						auto t = value::Object("t");
+						t.type = value::ident;
+						stack->push(t);
+					} else {
+						stack->push(value::Object());
+					}
+					pc++;
+				}; break;
+
 			case OP_EQUAL: {
 						auto a = stack->pop();
 						auto b = stack->pop();
@@ -317,13 +337,27 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					}
 					pc++;
 				} break;
+			case OP_OR: {
+					auto b = stack->pop();
+					auto a = stack->pop();
+					if (!(VAL_TRUE(a) || VAL_TRUE(b))){
+						stack->push(value::Object());
+					} else {
+						auto t = value::Object("t");
+						t.type = value::ident;
+						stack->push(t);
+					}
+					pc++;
+				} break;
 
 
 			case OP_CONS: {
 					auto val = stack->pop();
 					auto lst = stack->pop();
 					if (lst.type != value::list) {
-						throw "attempt to cons to non-list";
+						if (lst.type == value::nil) {
+							lst.type = value::list;
+						} else throw "attempt to cons to non-list";
 					}
 					auto newlist = value::Object();
 					newlist.type = value::list;
@@ -378,21 +412,40 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 
 			case OP_CALL: {
+					int i;
 					// std::cout << "calling " << call_count++ << "\n";
 					auto callable = stack->pop();
 					if (callable.type != value::procedure) throw "attempt to call non-procedure";
 
-					if (in.whole != callable.argc) {
-						throw "invalid argument count to function call";
-					}
+					int passedc = in.whole;
 
+					std::vector<value::Argument> argnames = *callable.args;
+					std::vector<value::Object> arglist;
+
+
+					// pop off the args in the right order.
+					for (i = 0; i < passedc; i++) {
+						auto arg = stack->pop();
+						arglist.insert(arglist.begin(), arg);
+					}
 
 					sc = sc->spawn_child();
 
-					for (int i = callable.argc; i > 0; i--) {
-						auto arg = stack->pop();
-						sc->set(std::string(callable.argv[i-1]),arg);
+					i = 0;
+					for (i = 0; i < passedc; i++) {
+						value::Argument argname = argnames[i];
+						if (argname.type == value::plain) {
+							sc->set(std::string(argname.name), arglist[i]);
+						} else if (argname.type == value::rest) {
+							value::Object lst;
+							lst.type = value::list;
+							while (i < passedc) {
+								lst.append(arglist[i++]);
+							}
+							sc->set(std::string(argname.name), lst);
+						}
 					}
+
 
 					bytecode_stack_obj_t new_call;
 					vm::Bytecode lambda_bc = *(callable.code);
@@ -404,12 +457,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_RETURN: {
 					auto *parent = sc->parent;
-					if (parent == NULL) throw "attempt to return to NULL parent scope";
-					sc = parent;
-					bc_stk.pop();
-
-
-
+					if (parent != NULL) sc = parent;
+					if (bc_stk.size() != 1)	bc_stk.pop();
 					pc++;
 				}; break;
 
@@ -426,24 +475,73 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						if (arg2.type == value::number) {
 							exit(arg2.number);
 						} else {
-							std::cout << arg2.to_string() << "\n";
+							std::cout << arg2.to_string(true) << "\n";
 							exit(1);
 						}
 					}
 
 					if (syscalli == SYS_PRINT) {
-						std::cout << arg2.to_string();
+						std::cout << arg2.to_string(true);
 					}
 
 					if (syscalli == SYS_LOAD) {
 						if (arg2.type != value::string) throw "syscall load requires a string filepath";
 						bool repls = state->repl;
 						state->repl = false;
-						char* path = (char*)arg2.to_string().c_str();
+						char* path = (char*)arg2.to_string(true).c_str();
 						state->eval_file(path);
 						state->repl = repls;
 					}
+
+					if (syscalli == SYS_TYPE) {
+						auto val = arg2;
+						auto type_kw = value::Object(value::keyword);
+						type_kw.type = value::keyword;
+						type_kw.string = (char*)":unknown";
+						using namespace value;
+						#define TYPEOFVALUE(x) if (val.type == x) {type_kw.string = strdup(":"#x);}
+						TYPEOFVALUE(list);
+						TYPEOFVALUE(ident);
+						TYPEOFVALUE(string);
+						TYPEOFVALUE(number);
+						TYPEOFVALUE(procedure);
+						TYPEOFVALUE(keyword);
+						TYPEOFVALUE(nil);
+						stack->push(type_kw);
+					}
+
+					if (syscalli == SYS_SHELL) {
+						if (arg2.type != value::list) throw "shell systemcall requires a list of strings";
+
+						int len = arg2.length();
+						stack->push(value::Object());
+					}
 					pc++;
+				}; break;
+
+			case OP_NOT: {
+					auto arg = stack->pop();
+					if (arg.type == value::nil) {
+						auto t = value::Object("t");
+						t.type = value::ident;
+						stack->push(t);
+					} else {
+						auto nil = value::Object();
+						nil.type = value::nil;
+						stack->push(nil);
+					}
+					pc++;
+				}; break;
+
+			case OP_JUMP: {
+					pc = in.whole;
+				}; break;
+
+			case OP_JUMP_FALSE: {
+					auto arg = stack->pop();
+					if (arg.type == value::nil)
+						pc = in.whole;
+					else pc++;
 				}; break;
 
 			default:

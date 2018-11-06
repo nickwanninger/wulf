@@ -1,5 +1,11 @@
-(def *wulf/repl-prompt* ">> ")
-(def (hello) (print "hello, world\n"))
+(def (fact n)
+  (if (zero? n)
+    1
+    (* n (fact (- n 1)))))
 
-(hello)
-;(die "oops")
+(def (fib n)
+  (if (< n 2)
+    n
+    (+ (fib (- n 1)) (fib (- n 2)))))
+
+(print (fib 10))

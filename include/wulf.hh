@@ -50,15 +50,15 @@ char* read_file_contents(char*);
 char* read_file_contents(FILE* f);
 std::string unescape(const std::string& s);
 
-#define TOK_EOF         0
-#define TOK_UNKNOWN     1
-#define TOK_NUMBER      2
-#define TOK_IDENTIFIER  3
-#define TOK_LPAREN      4
-#define TOK_RPAREN      5
-#define TOK_OPERATOR    6
-#define TOK_KEYWORD     7
-#define TOK_STRING      8
-#define TOK_QUOTE       9
+#define TOK_EOF           0
+#define TOK_UNKNOWN       1
+#define TOK_NUMBER        2
+#define TOK_IDENTIFIER    3
+#define TOK_LPAREN        4
+#define TOK_RPAREN        5
+#define TOK_OPERATOR      6
+#define TOK_KEYWORD       7
+#define TOK_STRING        8
+#define TOK_QUOTE         9
 
 #endif
