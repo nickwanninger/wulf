@@ -83,6 +83,7 @@ namespace value {
 				struct {
 					vm::Bytecode* code;
 					std::vector<Argument> *args;
+					scope::Scope* defining_scope;
 				};
 			};
 			/*
@@ -102,6 +103,13 @@ namespace value {
 			size_t length();
 			Object* operator[] (int);
 	};
+
+
+	Object* newlist(std::vector<Object> elms = std::vector<Object>());
+	Object* newident(const char*);
+	Object* newstring(const char*);
+	Object* newnumber(double);
+
 }
 
 

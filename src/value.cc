@@ -47,7 +47,6 @@ Object::Object(const char* str) {
 
 Object::~Object() {}
 
-
 std::string Object::to_string(bool human) {
 	std::ostringstream buf;
 
@@ -140,7 +139,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						// a more usable syntax with lambdas
 						if (name->type == value::list) {
 							// the following code is quite spooky. plz be careful.
-							auto lambda = value::Object();
+							auto lambda = *newlist();
 							if (name->first->type != value::ident)
 								throw "call to def with function declaration syntax requires a function name as the first argument to the list";
 							lambda.type = value::list;
@@ -268,20 +267,6 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
-					ifcall(car) {
-						if (last->first == NULL) throw "call to car requires one argument";
-						last->first->compile(machine, bc);
-						bc->push(OP_CAR);
-						return;
-					}
-
-					ifcall(cdr) {
-						if (last->first == NULL) throw "call to cdr requires one argument";
-						last->first->compile(machine, bc);
-						bc->push(OP_CDR);
-						return;
-					}
-
 					ifcall(do) {
 						auto len = length();
 						for (int i = 1; i < len; i++) {
@@ -295,8 +280,6 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						if (length() != 3) throw "call to cons requires 2 arguments";
 
 						auto self = *this;
-
-
 						self[2]->compile(machine, bc);
 						self[1]->compile(machine, bc);
 						bc->push(OP_CONS);
@@ -372,11 +355,11 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 				}
 
 				const char* callname = first->to_string().c_str();
-				BIN_CALL("+", OP_ADD);
-				BIN_CALL("-", OP_SUB);
-				BIN_CALL("*", OP_MUL);
-				BIN_CALL("/", OP_DIV);
-				BIN_CALL("%", OP_MOD);
+				// BIN_CALL("+", OP_ADD);
+				// BIN_CALL("-", OP_SUB);
+				// BIN_CALL("*", OP_MUL);
+				// BIN_CALL("/", OP_DIV);
+				// BIN_CALL("%", OP_MOD);
 				BIN_CALL("and", OP_AND);
 				BIN_CALL("or", OP_OR);
 				UNARY_CALL("not", OP_NOT);
@@ -508,3 +491,33 @@ void Object::append(value::Object obj) {
 	curr->last->type = value::list;
 	curr->first = new value::Object(obj);
 }
+
+
+Object* value::newlist(std::vector<Object> items) {
+	auto *v = new Object();
+	v->type = value::list;
+	for (Object item : items) {
+		v->append(item);
+	}
+	return v;
+}
+
+Object* value::newident(const char* i) {
+	auto *v = new Object();
+	v->type = value::ident;
+	v->string = strdup(i);
+	return v;
+}
+Object* value::newstring(const char* i) {
+	auto *v = new Object();
+	v->type = value::string;
+	v->string = strdup(i);
+	return v;
+}
+Object* value::newnumber(double n) {
+	auto *v = new Object();
+	v->type = value::number;
+	v->number = n;
+	return v;
+}
+

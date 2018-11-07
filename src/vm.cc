@@ -64,7 +64,7 @@ stackval& Stack::ref(long i) {
 
 void Stack::resize(long newsize) {
 
-	std::cout << "resizing stack from " << stacksize << " to " << newsize << "\n";
+	// std::cout << "resizing stack from " << stacksize << " to " << newsize << "\n";
 	int new_block_count = fmax(ceil(newsize / stack_block_size), 1);
 	if (newsize < stack_block_size) return;
 	newsize = new_block_count * stack_block_size;
@@ -168,8 +168,6 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_CALL) << "\t" << whole; break;
 		OP_STRING(OP_CONS); break;
 		OP_STRING(OP_EXIT); break;
-		OP_STRING(OP_CAR); break;
-		OP_STRING(OP_CDR); break;
 		OP_STRING(OP_EQUAL); break;
 		OP_STRING(OP_INTERN); break;
 		OP_STRING(OP_PUSH_RAW) << "\t" << object->to_string(); break;
@@ -194,15 +192,14 @@ Machine::Machine() {
 }
 
 #define OP_BINARY(op) {                                             \
-	auto b = stack->pop();                                            \
-	auto a = stack->pop();                                            \
-	if (a.type == b.type && a.type == value::number) {                \
-		stack->push(value::Object(a.number op b.number));               \
+	auto b = arg2[1];                                                 \
+	auto a = arg2[0];                                                 \
+	if (a->type == b->type && a->type == value::number) {           \
+		stack->push(value::Object(a->number op b->number));             \
 	} else {                                                          \
 		throw "attempt to perform math on two non-number values";       \
 	}                                                                 \
-	pc++;                                                             \
-} break;
+};
 
 #define EVAL_DEBUG
 
@@ -272,10 +269,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					pc++;
 				} break;
 
-			case OP_ADD: OP_BINARY(+);
-			case OP_SUB: OP_BINARY(-);
-			case OP_MUL: OP_BINARY(*);
-			case OP_DIV: OP_BINARY(/);
 
 
 			case OP_LT: {
@@ -376,26 +369,18 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					pc++;
 				}; break;
 
-			case OP_CAR: {
-					auto lst = stack->pop();
-					if (lst.type != value::list) throw "attempt to CAR a non-list";
-					stack->push(*lst.first);
-					pc++;
-				}; break;
-			case OP_CDR: {
-					auto lst = stack->pop();
-					if (lst.type != value::list) throw "attempt to CDR a non-list";
-					stack->push(*lst.last);
-					pc++;
-				}; break;
 			case OP_NOP:
 				pc++;
 				break;
 
-			case OP_PUSH_RAW:
-				stack->push(*in.object);
-				pc++;
-				break;
+			case OP_PUSH_RAW: {
+					auto obj = *in.object;
+					if (obj.type == value::procedure) {
+						obj.defining_scope = sc;
+					}
+					stack->push(obj);
+					pc++;
+				}; break;
 
 			case OP_PUSH_LOOKUP: {
 					value::Object val = sc->find(in.string);
@@ -413,23 +398,23 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_CALL: {
 					int i;
-					// std::cout << "calling " << call_count++ << "\n";
 					auto callable = stack->pop();
-					if (callable.type != value::procedure) throw "attempt to call non-procedure";
+					if (callable.type != value::procedure) {
+						std::cout << "call here: " << callable.to_string() << "\n";
+						throw "attempt to call non-procedure";
+					}
 
+					// printf("defining scope: %p\n", (void*) callable.defining_scope);
 					int passedc = in.whole;
-
 					std::vector<value::Argument> argnames = *callable.args;
 					std::vector<value::Object> arglist;
-
-
 					// pop off the args in the right order.
 					for (i = 0; i < passedc; i++) {
 						auto arg = stack->pop();
 						arglist.insert(arglist.begin(), arg);
 					}
 
-					sc = sc->spawn_child();
+					sc = callable.defining_scope->spawn_child();
 
 					i = 0;
 					for (i = 0; i < passedc; i++) {
@@ -466,6 +451,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 			case OP_SYSCALL: {
 					auto arg2 = stack->pop();
 					auto arg1 = stack->pop();
+
+
+					// std::cout << "(syscall " << arg1.to_string() << " " << arg2.to_string() << ")\n";
 
 					if (arg1.type != value::number) throw "attempt to call syscall with non-number as first argument";
 					int syscalli = arg1.number;
@@ -516,6 +504,43 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						int len = arg2.length();
 						stack->push(value::Object());
 					}
+
+					if (syscalli == SYS_ADD) OP_BINARY(+);
+					if (syscalli == SYS_SUB) OP_BINARY(-);
+					if (syscalli == SYS_MUL) OP_BINARY(*);
+					if (syscalli == SYS_DIV) OP_BINARY(/);
+
+
+					if (syscalli == SYS_CAR) {
+						auto lst = arg2;
+						if (lst.type != value::list) {
+							if (lst.type == value::nil) {
+								stack->push(value::Object());
+							} else {
+								throw "attempt to car non-list";
+							}
+						} else {
+							stack->push(*lst.first);
+						}
+					}
+
+					if (syscalli == SYS_CDR) {
+						auto lst = arg2;
+						if (lst.type != value::list) {
+							if (lst.type == value::nil) {
+								stack->push(value::Object());
+							} else {
+								throw "attempt to car non-list";
+							}
+						} else {
+							if (lst.last == NULL) {
+								stack->push(value::Object());
+							} else {
+								stack->push(*lst.last);
+							}
+						}
+					}
+
 					pc++;
 				}; break;
 

@@ -65,6 +65,7 @@ namespace vm {
 			Machine();
 			void eval(Bytecode, scope::Scope*);
 	};
+
 }
 
 #endif

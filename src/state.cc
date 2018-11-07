@@ -20,9 +20,24 @@ State::State() {
 	eval("(def (puts m) (syscall 7 m))");
 	eval("(def (print x) (do (puts x) (puts \"\n\")))");
 
+	eval("(def (list :rest l) l)");
+
 	eval("(def (load path) (syscall 8 path))");
 	eval("(def (type x) (syscall 9 x))");
 	eval("(def (sh :rest args) (syscall 10 args))");
+
+	eval("(def (+ a b) (syscall 11 (list a b)))");
+	eval("(def (- a b) (syscall 12 (list a b)))");
+	eval("(def (* a b) (syscall 13 (list a b)))");
+	eval("(def (/ a b) (syscall 14 (list a b)))");
+
+	eval("(def (car l) (syscall 19 l))");
+	eval("(def (cdr l) (syscall 20 l))");
+
+	// define some basic +1 and -1 operations
+	eval("(def (inc a) (+ a 1))");
+	eval("(def (dec a) (- a 1))");
+
 	eval("(def *wulf/repl-prompt* \": \")");
 	eval("(def t 't)");
 	// setup the check functions
@@ -74,10 +89,13 @@ void State::eval(char* source) {
 		}
 
 
-		if (print_bytecode)
+		if (print_bytecode) {
+			std::cout << "; " << node->to_string() << "\n";
 			for (int i = 0; i < bc.instructions.size(); i++) {
 				printf("0x%04x %s\n", i, bc.instructions[i].to_string().c_str());
 			}
+			std::cout << "\n";
+		}
 
 		// attempt to evaluate the bytecode
 		try {
