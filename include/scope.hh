@@ -53,6 +53,7 @@ namespace scope {
 			 */
 			Scope* spawn_child();
 			value::Object find(std::string);
+			Bucket* find_bucket(std::string);
 
 			std::string to_string();
 			void set(std::string, value::Object);

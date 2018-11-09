@@ -20,3 +20,4 @@
 #define SYS_CAR    19
 #define SYS_CDR    20
 
+#define SYS_RNG    22

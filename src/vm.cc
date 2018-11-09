@@ -153,6 +153,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_PUSH_STR) << "\t'" << string << "'"; break;
 		OP_STRING(OP_PUSH_LOOKUP) << "\t" << string; break;
 		OP_STRING(OP_STORE_GLOBAL) << "\t" << string; break;
+		OP_STRING(OP_STORE_LOCAL) << "\t" << string; break;
 		// math ops
 		OP_STRING(OP_ADD); break;
 		OP_STRING(OP_SUB); break;
@@ -417,11 +418,25 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_STORE_GLOBAL: {
 					auto val = stack->pop();
+					std::cout << "store_global " << in.string << "\t" << val.to_string() << "\n";
 					sc->root->set(in.string, val);
 					stack->push(val);
 					pc++;
 				}; break;
 
+
+			case OP_STORE_LOCAL: {
+					auto val = stack->pop();
+					std::cout << "store_local " << in.string << "\t" << val.to_string() << "\n";
+					scope::Bucket *buck = sc->find_bucket(std::string(in.string));
+					if (buck == NULL) {
+						sc->set(in.string, val);
+					} else {
+						buck->val = val;
+					}
+					stack->push(val);
+					pc++;
+				}; break;
 
 			case OP_CALL: {
 					int i;
@@ -577,6 +592,13 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 								}
 							}
 						}
+					}
+
+					if (syscalli == SYS_RNG) {
+						double x = (double)rand()/(double)(RAND_MAX);
+						auto num = value::Object(value::number);
+						num.number = x;
+						stack->push(num);
 					}
 
 					pc++;

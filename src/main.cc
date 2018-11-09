@@ -38,7 +38,7 @@
 
 int main(int argc, char** argv) {
 	GC_init();
-
+	srand((unsigned int)time(NULL));
 	try {
 
 	bool interactive = false;

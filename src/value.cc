@@ -144,6 +144,19 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 				// first check if it's a special call or not. (quote, lambda, etc..)
 				if (first->type == value::ident) {
 
+					ifcall(set!) {
+						if (length() != 3) throw "call to set! requires 2 argumenst";
+						auto self = *this;
+						value::Object name = *self[1];
+						value::Object val = *self[2];
+						if (name.type != value::ident) throw "name argument for set! must be an identifier literal";
+						val.compile(machine, bc);
+						vm::Instruction inst(OP_STORE_LOCAL);
+						inst.string = name.string;
+						bc->push(inst);
+						return;
+					}
+
 					ifcall(def) {
 						if (last->first == NULL || last->last->first == NULL) throw "call to def requires at least two arguments";
 						auto *name = last->first;

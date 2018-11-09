@@ -15,6 +15,7 @@ typedef unsigned char opcode_t;
 // store the value at the top of the stack in the current env
 #define OP_STORE_GLOBAL  0x08
 #define OP_PUSH_RAW      0x09
+#define OP_STORE_LOCAL   0x0a
 
 // math operations are always of the form 0x5n
 #define OP_ADD        0x50

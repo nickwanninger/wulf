@@ -38,7 +38,6 @@ State::State() {
 	eval("(def (inc a) (+ a 1))");
 	eval("(def (dec a) (- a 1))");
 
-	eval("(def *wulf/repl-prompt* \": \")");
 	eval("(def t 't)");
 	// setup the check functions
 	eval("(def (nil? x) (= x nil))");
@@ -120,7 +119,7 @@ void State::eval(char* source) {
 				scope->root->set(name.str(), top);
 				repl_index++;
 				if (top.type != value::nil)
-					std::cout << KGRN << top.to_string() << RST << "\n";
+					std::cout << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
 			}
 		}
 	}
@@ -164,15 +163,10 @@ void State::run_repl() {
 	repl = true;
 	char* buf;
 	while (true) {
-		auto prompt = scope->find("*wulf/repl-prompt*");
 
 
 		std::ostringstream pr;
-		pr << "[";
-		pr << repl_index;
-		pr << "]";
-		pr << ": "; //prompt.to_string(true);
-
+		pr << ">>> ";
 		buf = linenoise(pr.str().c_str());
 
 		std::cout << RST;

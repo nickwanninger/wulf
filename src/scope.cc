@@ -35,24 +35,29 @@ Scope* Scope::spawn_child() {
 }
 
 
+
+Bucket* Scope::find_bucket(std::string name) {
+
+	Scope *current = this;
+	while (current != NULL) {
+		if (current->bindings.contains(name)) {
+			return current->bindings.getbucket(name);
+		}
+		current = current->parent;
+	}
+	// base case. (there wasn't a bucket)
+	return NULL;
+}
+
 /*
  * find a variable name in the scope or check all parents
  */
 value::Object Scope::find(std::string name) {
-
-	// attempt to read the binding from this scope's local map
-	value::Object val;
-	Scope* current = this;
-	bool found = false;
-	while (current != NULL) {
-		if (current->bindings.contains(name)) {
-			auto *bkt = current->bindings.getbucket(name);
-			return bkt->val;
-		}
-		current = current->parent;
+	Bucket* buck = find_bucket(name);
+	if (buck == NULL) {
+		throw std::string("variable ") + name + " is not bound";
 	}
-	if (!found) throw std::string("variable ") + name + " is not bound";
-	return value::Object();
+	return buck->val;
 }
 
 
