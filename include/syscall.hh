@@ -17,7 +17,6 @@
 #define SYS_OR     17
 #define SYS_NOT    18
 
-
 #define SYS_CAR    19
 #define SYS_CDR    20
 

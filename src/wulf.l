@@ -64,6 +64,7 @@
 [ \t\n] ; // ignore whitespace
 ";".*   ; // ignore comments
 
+"#!".*   ; // ignore crunch bang
 
 . {
 	return TOK_UNKNOWN;

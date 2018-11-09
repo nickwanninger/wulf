@@ -39,6 +39,8 @@
 int main(int argc, char** argv) {
 	GC_init();
 
+	try {
+
 	bool interactive = false;
 
 	auto *state = new State();
@@ -82,36 +84,23 @@ int main(int argc, char** argv) {
 
 	delete state;
 
+	} catch (std::string err) {
+		std::cerr << "Error: " << err << "\n";
+	}
+
 	return 0;
 }
 
 
-
-
-// garbage collection crap
-static void xfinalizer(GC_PTR obj, GC_PTR x) {
-	printf("%p collected\n", obj);
-}
-
-void* xmalloc(size_t size) {
-	void* ptr = GC_MALLOC(size);
-	// printf("allocated %lu bytes to %p\n", size, ptr);
-	return ptr;
-}
-
 void* operator new(size_t size) {
-	return xmalloc(size);
+	return GC_MALLOC(size);
 }
 void* operator new[](size_t size) {
-	return xmalloc(size);
+	return GC_MALLOC(size);
 }
 
 #ifdef __GLIBC__
 #define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
 #endif
-void operator delete(void* ptr) _NOEXCEPT {
-	GC_FREE(ptr);
-}
-void operator delete[](void* ptr) _NOEXCEPT {
-	GC_FREE(ptr);
-}
+void operator delete(void* ptr) _NOEXCEPT {}
+void operator delete[](void* ptr) _NOEXCEPT {}

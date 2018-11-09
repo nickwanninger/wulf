@@ -5,8 +5,8 @@
 #include <list>
 #include <specialforms.hh>
 #include <value.hh>
+#include <map>
 
-#define BUCKET_SIZE 3
 
 namespace scope {
 
@@ -14,15 +14,20 @@ namespace scope {
 	class Bucket {
 		public:
 			std::string key;
-			value::Object* val;
+			value::Object val;
+			Bucket* next;
 	};
 
 	class Valmap {
 		private:
-			std::list<Bucket> buckets[BUCKET_SIZE];
+			long bucketsize;
+			Bucket** buckets;
 		public:
+			Valmap();
+			Valmap(long);
 			bool contains(const std::string&);
 			value::Object& operator[](const std::string);
+			Bucket* getbucket(const std::string);
 	};
 
 	class Scope {
@@ -37,6 +42,7 @@ namespace scope {
 			Scope* parent = NULL;
 
 			Scope* root = NULL;
+			Scope* returning_scope = NULL;
 			/*
 			 * constructors
 			 */
@@ -47,6 +53,8 @@ namespace scope {
 			 */
 			Scope* spawn_child();
 			value::Object find(std::string);
+
+			std::string to_string();
 			void set(std::string, value::Object);
 			void set(const char*, value::Object);
 			void set(const char*, double);

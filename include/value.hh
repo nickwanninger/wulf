@@ -33,7 +33,6 @@ NSCLASS(vm, Bytecode);
 using stringlist = std::vector<std::string>;
 typedef std::vector<value::Object> valuelist;
 
-
 namespace value {
 
 	enum ArgType {

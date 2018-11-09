@@ -4,8 +4,8 @@
 #include <color.hh>
 #include <fstream>
 #include <parser.hh>
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <linenoise.h>
+
 
 State::State() {
 	scope = new scope::Scope();
@@ -120,7 +120,7 @@ void State::eval(char* source) {
 				scope->root->set(name.str(), top);
 				repl_index++;
 				if (top.type != value::nil)
-					std::cout << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
+					std::cout << KGRN << top.to_string() << RST << "\n";
 			}
 		}
 	}
@@ -169,19 +169,17 @@ void State::run_repl() {
 
 		std::ostringstream pr;
 		pr << "[";
-		pr << KBLU;
 		pr << repl_index;
-		pr << RST;
 		pr << "]";
-		pr << prompt.to_string(true);
+		pr << ": "; //prompt.to_string(true);
 
-		buf = readline(pr.str().c_str());
+		buf = linenoise(pr.str().c_str());
 
 		std::cout << RST;
 		if (buf == nullptr) break;
 
 		if (strlen(buf) > 0) {
-			add_history(buf);
+			linenoiseHistoryAdd(buf);
 			eval(buf);
 		}
 		// free the buffer provided by linenoise

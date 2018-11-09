@@ -21,6 +21,8 @@
 #include <value.hh>
 #include <vm.hh>
 #include <locale>
+#include <iostream>
+#include <math.h>
 
 using namespace value;
 
@@ -47,6 +49,7 @@ Object::Object(const char* str) {
 
 Object::~Object() {}
 
+
 std::string Object::to_string(bool human) {
 	std::ostringstream buf;
 
@@ -60,7 +63,7 @@ std::string Object::to_string(bool human) {
 				buf << "(";
 				Object* curr = this;
 				while (curr->first != NULL) {
-					buf << curr->first->to_string();
+					buf << curr->first->to_string(false);
 					if (curr->last != NULL) {
 						buf << " ";
 						curr = curr->last;
@@ -86,9 +89,21 @@ std::string Object::to_string(bool human) {
 				buf << '"';
 			}
 			break;
-		case value::number:
-			buf << number;
-			break;
+		case value::number: {
+				auto str = std::to_string(number);
+				long len = str.length();
+				for (int i = len-1; i > 0; i--) {
+					if (str[i] == '0') {
+						str.pop_back();
+					}	else if (str[i] == '.') {
+						str.pop_back();
+						break;
+					} else {
+						break;
+					}
+				}
+				buf << str;
+			}; break;
 
 			// procedure stringifier
 		case value::procedure:
@@ -109,8 +124,6 @@ std::string Object::to_string(bool human) {
 	if (!strcmp(name, callname)) { if (arg_count == 1) {bc->push(vm::Instruction(op)); return; } else { throw "unary operator requires one argument"; } }
 
 #define ifcall(method) if (!strcmp(first->string, #method))
-
-
 
 
 void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {

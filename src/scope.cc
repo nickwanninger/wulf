@@ -11,9 +11,10 @@ int scope_index = 0;
  * default constructor for Scope that sets the parent to NULL
  */
 Scope::Scope() {
-	index = scope_index++;
 	parent = NULL;
 	root = this;
+	index = scope_index++;
+	bindings = Valmap(30);
 }
 
 /*
@@ -23,6 +24,7 @@ Scope::Scope(Scope* p) {
 	parent = p;
 	root = parent->root;
 	index = scope_index++;
+	bindings = Valmap(30);
 }
 
 /*
@@ -44,24 +46,27 @@ value::Object Scope::find(std::string name) {
 	bool found = false;
 	while (current != NULL) {
 		if (current->bindings.contains(name)) {
-			val = current->bindings[name];
-			found = true;
-			break;
+			auto *bkt = current->bindings.getbucket(name);
+			return bkt->val;
 		}
 		current = current->parent;
 	}
 	if (!found) throw std::string("variable ") + name + " is not bound";
-	bindings[name] = val;
-	return val;
-
+	return value::Object();
 }
 
+
+
+std::string Scope::to_string() {
+	std::ostringstream buf;
+	return buf.str();
+}
 
 /*
  * set a binding in the current scope
  */
 void Scope::set(std::string name, value::Object val) {
-	bindings[name] = val;
+	bindings.getbucket(name)->val = val;
 }
 
 void Scope::set(const char* name, value::Object val) {
@@ -72,15 +77,7 @@ void Scope::set(const char* name, double val) {
 	set(name, value::Object(val));
 }
 
-
-
-#define BINDSF(name) \
-	set(#name, specialform::name)
-
 void Scope::install_default_bindings() {
-	//value::Object t("t"); t.type = value::ident;
-	//set("t", t);
-
 }
 
 
@@ -94,28 +91,45 @@ static long hashstring(const char* str) {
 }
 
 
+Valmap::Valmap() {
+	bucketsize = 4;
+	buckets = new Bucket*[bucketsize];
+}
+
+
+Valmap::Valmap(long s) {
+	bucketsize = s;
+	buckets = new Bucket*[s];
+}
 
 bool Valmap::contains(const std::string& key) {
-	long ind = hashstring(key.c_str());
-	std::list<Bucket>& list = buckets[ind % BUCKET_SIZE];
-	for (Bucket& buck : list) {
-		if (buck.key == key) return true;
+	long ind = hashstring(key.c_str()) % bucketsize;
+	Bucket* b = buckets[ind];
+	while (b != NULL) {
+		if (b->key == key) return true;
+		b = b->next;
 	}
 	return false;
 }
 
-value::Object& Valmap::operator[](const std::string key) {
-	long ind = hashstring(key.c_str());
-	std::list<Bucket>& list = buckets[ind % BUCKET_SIZE];
-	for (Bucket& buck : list) {
-		if (buck.key == key) return *buck.val;
+Bucket* Valmap::getbucket(const std::string key) {
+	long ind = hashstring(key.c_str()) % bucketsize;
+	Bucket* b = buckets[ind];
+	while (b != NULL) {
+		if (b->key == key) {
+			return b;
+		}
+		b = b->next;
 	}
 
-	value::Object o;
 
-	Bucket buck;
-	buck.key = key;
-	buck.val = new value::Object();
-	list.push_front(buck);
-	return *list.front().val;
+	b = new Bucket();
+	b->key = key;
+	b->next = buckets[ind];
+	buckets[ind] = b;
+	return b;
+}
+
+value::Object& Valmap::operator[](const std::string key) {
+	return getbucket(key)->val;
 }

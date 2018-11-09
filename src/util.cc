@@ -1,5 +1,5 @@
 #include <wulf.hh>
-
+#include <math.h>
 
 char* read_file_contents(char* filename) {
 	FILE* f = fopen(filename, "r");
@@ -48,3 +48,5 @@ std::string unescape(const std::string& s) {
 
 	return res;
 }
+
+

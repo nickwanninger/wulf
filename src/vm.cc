@@ -13,7 +13,7 @@ using namespace vm;
 #define STACK_BASE_SIZE 64
 #define STACK_BREATHING_ROOM 20
 
-#define STACK_DEBUG
+// #define STACK_DEBUG
 
 typedef stackval* stackblock;
 
@@ -223,6 +223,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 	while (bc_stk.top().pc < bc_stk.top().bc.instructions.size()) {
 		long long & pc = bc_stk.top().pc;
+
 		vm::Instruction & in = bc_stk.top().bc.instructions[pc];
 		if (debug) {
 			system("clear");
@@ -288,13 +289,37 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 			case OP_EQUAL: {
 						auto a = stack->pop();
 						auto b = stack->pop();
-						if (a.type != b.type || a.to_string() != b.to_string()) {
+
+						auto tr = value::Object("t");
+						tr.type = value::ident;
+						if (a.type == b.type && a.type == value::number) {
+							if (a.number == b.number) {
+								stack->push(tr);
+								pc++;
+								break;
+							} else {
+								stack->push(value::Object());
+								pc++;
+								break;
+							}
+						}
+						// special case nil and list comparison
+						// todo: wrap this all in an `==` overloaded operator
+						if (a.type == value::list || b.type == value::list) {
+							if (a.type == value::list || b.type == value::list) {
+								auto the_list = a.type == value::list ? a : b;
+								auto the_nil = a.type == value::nil ? a : b;
+								if (the_list.length() != 0) {
+									stack->push(value::Object(value::nil));
+									pc++;
+									break;
+								}
+							}
+						} else if (a.type != b.type || a.to_string() != b.to_string()) {
 							stack->push(value::Object(value::nil));
 							pc++;
 							break;
 						}
-						auto tr = value::Object("t");
-						tr.type = value::ident;
 						stack->push(tr);
 						pc++;
 						break;
@@ -350,7 +375,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					if (lst.type != value::list) {
 						if (lst.type == value::nil) {
 							lst.type = value::list;
-						} else throw "attempt to cons to non-list";
+						} else {
+							throw "attempt to cons to non-list";
+						}
 					}
 					auto newlist = value::Object();
 					newlist.type = value::list;
@@ -400,9 +427,10 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					int i;
 					auto callable = stack->pop();
 					if (callable.type != value::procedure) {
-						std::cout << "call here: " << callable.to_string() << "\n";
 						throw "attempt to call non-procedure";
 					}
+
+					// std::cout << "calling " << callable.to_string(false) << "\n";
 
 					// printf("defining scope: %p\n", (void*) callable.defining_scope);
 					int passedc = in.whole;
@@ -414,23 +442,29 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						arglist.insert(arglist.begin(), arg);
 					}
 
-					sc = callable.defining_scope->spawn_child();
+					auto *newscope = sc->spawn_child();
+					newscope = callable.defining_scope->spawn_child();
+					newscope->returning_scope = sc;
 
-					i = 0;
+
 					for (i = 0; i < passedc; i++) {
 						value::Argument argname = argnames[i];
 						if (argname.type == value::plain) {
-							sc->set(std::string(argname.name), arglist[i]);
+							newscope->set(std::string(argname.name), arglist[i]);
 						} else if (argname.type == value::rest) {
 							value::Object lst;
 							lst.type = value::list;
 							while (i < passedc) {
 								lst.append(arglist[i++]);
 							}
-							sc->set(std::string(argname.name), lst);
+							newscope->set(std::string(argname.name), lst);
 						}
 					}
 
+					if (i < callable.args->size()) throw "invalid number of arguments passed to function call";
+
+
+					sc = newscope;
 
 					bytecode_stack_obj_t new_call;
 					vm::Bytecode lambda_bc = *(callable.code);
@@ -441,7 +475,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_RETURN: {
-					auto *parent = sc->parent;
+					auto *parent = sc->returning_scope;
 					if (parent != NULL) sc = parent;
 					if (bc_stk.size() != 1)	bc_stk.pop();
 					pc++;
@@ -530,13 +564,17 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 							if (lst.type == value::nil) {
 								stack->push(value::Object());
 							} else {
-								throw "attempt to car non-list";
+								throw "attempt to cdr non-list";
 							}
 						} else {
 							if (lst.last == NULL) {
-								stack->push(value::Object());
+								stack->push(value::Object(value::nil));
 							} else {
-								stack->push(*lst.last);
+								if ((*lst.last).length() == 0) {
+									stack->push(value::Object());
+								} else {
+									stack->push(*lst.last);
+								}
 							}
 						}
 					}
