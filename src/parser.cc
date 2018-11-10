@@ -161,9 +161,6 @@ value::Object* Parser::parse_expr() {
 			return parse_ident();
 		case TOK_QUOTE:
 			return parse_quote();
-		case TOK_UNKNOWN:
-			std::cout << "warning: token " << tok << " unimplemented. Converted to nil\n";
-			break;
 		case TOK_KEYWORD: {
 				auto kw = new value::Object();
 				kw->type = value::keyword;
@@ -179,7 +176,7 @@ value::Object* Parser::parse_expr() {
 				return s;
 			}
 	}
-
+	std::cout << "unexpected token " << tok.type << "\n";
 	throw "oops";
 	next();
 	return new value::Object();

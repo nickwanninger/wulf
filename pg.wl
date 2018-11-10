@@ -62,7 +62,7 @@
 
 (def (pow b n)
   (if (= n 0)
-    1
+    s
     (* b (pow b (- n 1)))))
 
 
@@ -138,15 +138,31 @@
 (def (rng) (syscall 22 nil))
 
 ;; 244
-(def (makeaccount balance)
-  (fn (amount)
+(def (make-account balance)
+  (fn amount
     (if (>= balance amount)
       (do
-          balance)
+        (set! balance (- balance amount))
+        balance)
       "Insufficient funds")))
 
-; calling account-1 will withdraw from the state
-; and return the new balance
-;(def A1 (make-account 100))
-;(def A2 (make-account 100))
 
+
+; calling account-1 will withdraw from the state
+;and return the new balance
+(def A1 (make-account 100))
+(def A2 (make-account 100))
+
+
+
+(def (make-counter i)
+  (fn ()
+    (do
+      (set! i (inc i))
+      i)))
+
+(print (eval '(+ 1 2)))
+
+
+
+; (defmacro let (vars body) nil)

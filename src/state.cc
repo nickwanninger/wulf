@@ -17,6 +17,8 @@ State::State() {
 	eval("(def (exit) (syscall 1 0))");
 	eval("(def (die n) (syscall 1 n))");
 
+	eval("(def (eval stmt) (syscall 2 stmt))");
+
 	eval("(def (puts m) (syscall 7 m))");
 	eval("(def (print x) (do (puts x) (puts \"\n\")))");
 
@@ -166,7 +168,7 @@ void State::run_repl() {
 
 
 		std::ostringstream pr;
-		pr << ">>> ";
+		pr << "> ";
 		buf = linenoise(pr.str().c_str());
 
 		std::cout << RST;

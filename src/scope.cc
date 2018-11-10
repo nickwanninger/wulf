@@ -86,12 +86,11 @@ void Scope::install_default_bindings() {
 }
 
 
-static long hashstring(const char* str) {
-	long hash = 5381;
-	int size = strlen(str);
-	for (long c = 0; c < size; c++) {
-		hash = ((hash << 5) + hash) + c;
-	}
+static size_t hashstring(const std::string str) {
+
+	std::hash<std::string> hash_fn;
+
+	size_t hash = hash_fn(str);
 	return hash;
 }
 
@@ -108,7 +107,7 @@ Valmap::Valmap(long s) {
 }
 
 bool Valmap::contains(const std::string& key) {
-	long ind = hashstring(key.c_str()) % bucketsize;
+	long ind = hashstring(key) % bucketsize;
 	Bucket* b = buckets[ind];
 	while (b != NULL) {
 		if (b->key == key) return true;
@@ -118,7 +117,7 @@ bool Valmap::contains(const std::string& key) {
 }
 
 Bucket* Valmap::getbucket(const std::string key) {
-	long ind = hashstring(key.c_str()) % bucketsize;
+	long ind = hashstring(key) % bucketsize;
 	Bucket* b = buckets[ind];
 	while (b != NULL) {
 		if (b->key == key) {

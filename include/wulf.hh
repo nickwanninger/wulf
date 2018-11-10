@@ -60,5 +60,7 @@ std::string unescape(const std::string& s);
 #define TOK_KEYWORD       7
 #define TOK_STRING        8
 #define TOK_QUOTE         9
-
+#define TOK_QUASIQUOTE    10
+#define TOK_UNQUOTE       11
+#define TOK_UNQUOTE_SPLICING 12
 #endif

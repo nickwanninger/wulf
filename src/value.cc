@@ -184,7 +184,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						if (name->type == value::ident) {
 							auto *val = last->last->first;
 							val->compile(machine, bc);
-							auto store = vm::Instruction(OP_STORE_GLOBAL);
+							auto store = vm::Instruction(OP_STORE_LOCAL);
 							store.string = name->string;
 							bc->push(store);
 							return;

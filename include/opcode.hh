@@ -59,3 +59,5 @@ typedef unsigned char opcode_t;
 // and when it calls, it will set pc to the location
 #define OP_JUMP       0x7c
 #define OP_JUMP_FALSE 0x7d
+
+#define OP_BC_RETURN  0x7e

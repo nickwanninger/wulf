@@ -176,6 +176,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_JUMP) << "\t" << whole; break;
 		OP_STRING(OP_JUMP_FALSE) << "\t" << whole; break;
 		OP_STRING(OP_SYSCALL) << "\t" << object->to_string(); break;
+		OP_STRING(OP_BC_RETURN); break;
 	}
 	return buf.str();
 }
@@ -195,7 +196,7 @@ Machine::Machine() {
 #define OP_BINARY(op) {                                             \
 	auto b = arg2[1];                                                 \
 	auto a = arg2[0];                                                 \
-	if (a->type == b->type && a->type == value::number) {           \
+	if (a->type == b->type && a->type == value::number) {             \
 		stack->push(value::Object(a->number op b->number));             \
 	} else {                                                          \
 		throw "attempt to perform math on two non-number values";       \
@@ -443,8 +444,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						throw "attempt to call non-procedure";
 					}
 
-					// std::cout << "calling " << callable.to_string(false) << "\n";
-
 					// printf("defining scope: %p\n", (void*) callable.defining_scope);
 					int passedc = in.whole;
 					std::vector<value::Argument> argnames = *callable.args;
@@ -455,8 +454,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						arglist.insert(arglist.begin(), arg);
 					}
 
-					auto *newscope = sc->spawn_child();
-					newscope = callable.defining_scope->spawn_child();
+					auto *newscope = callable.defining_scope->spawn_child();
 					newscope->returning_scope = sc;
 
 
@@ -489,7 +487,17 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_RETURN: {
 					auto *parent = sc->returning_scope;
-					if (parent != NULL) sc = parent;
+					if (parent != NULL) {
+						sc = parent;
+					} else {
+						throw "no returning scope";
+					}
+					if (bc_stk.size() != 1)	bc_stk.pop();
+					pc++;
+				}; break;
+			// BC_RETURN only pops the bytecode.
+			//   this is used at the end of an eval
+			case OP_BC_RETURN: {
 					if (bc_stk.size() != 1)	bc_stk.pop();
 					pc++;
 				}; break;
@@ -513,6 +521,16 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 							std::cout << arg2.to_string(true) << "\n";
 							exit(1);
 						}
+					}
+
+					if (syscalli == SYS_EVAL) {
+						Bytecode evalbc;
+						arg2.compile(this, &evalbc);
+						evalbc.push(OP_BC_RETURN);
+						bytecode_stack_obj_t ev;
+						ev.bc = evalbc;
+						ev.pc = 0;
+						bc_stk.push(ev);
 					}
 
 					if (syscalli == SYS_PRINT) {

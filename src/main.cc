@@ -102,5 +102,6 @@ void* operator new[](size_t size) {
 #ifdef __GLIBC__
 #define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
 #endif
+// delete operators should be special nops
 void operator delete(void* ptr) _NOEXCEPT {}
 void operator delete[](void* ptr) _NOEXCEPT {}

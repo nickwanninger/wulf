@@ -66,6 +66,17 @@
 
 "#!".*   ; // ignore crunch bang
 
+"`" {
+	return TOK_UNQUOTE;
+}
+
+"," {
+	return TOK_UNQUOTE;
+}
+",@" {
+	return TOK_UNQUOTE_SPLICING;
+}
+
 . {
 	return TOK_UNKNOWN;
 }
