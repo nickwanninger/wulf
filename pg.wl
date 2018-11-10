@@ -3,21 +3,7 @@
   (if (nil? xs)
     i
     (reduce f (f i (car xs)) (cdr xs))))
-;;; define n-arg math ops with reduce
-;(def (+ :rest args)
-;  (reduce (fn (a b) (syscall 11 (list a b))) 0 args))
-;;; recursive, smart subtraction
-;(def (- :rest args)
-;  (do
-;    (if (nil? (car args))
-;      (die "subtraction requires at least one argument"))
-;    (if (nil? (cdr args))
-;      (- 0 (car args))
-;      (reduce
-;        (fn (a b) (syscall 12 (list a b)))
-;        (car args) (cdr args)))))
 
-;;;; ----------------------------------------------
 
 
 (def (first l) (syscall 19 l))

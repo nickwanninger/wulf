@@ -418,7 +418,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_STORE_GLOBAL: {
 					auto val = stack->pop();
-					std::cout << "store_global " << in.string << "\t" << val.to_string() << "\n";
 					sc->root->set(in.string, val);
 					stack->push(val);
 					pc++;
@@ -427,7 +426,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_STORE_LOCAL: {
 					auto val = stack->pop();
-					std::cout << "store_local " << in.string << "\t" << val.to_string() << "\n";
 					scope::Bucket *buck = sc->find_bucket(std::string(in.string));
 					if (buck == NULL) {
 						sc->set(in.string, val);
