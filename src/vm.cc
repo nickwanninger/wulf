@@ -223,10 +223,10 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 		switch (in.opcode) {
 
-			case OP_PUSH_NIL:
-				stack->push(value::Object());
-				pc++;
-				break;
+			case OP_PUSH_NIL: {
+					stack->push(value::Object());
+					pc++;
+				}; break;
 
 			case OP_PUSH_NUM: {
 					auto val = value::Object(in.number);
@@ -676,7 +676,6 @@ void vm::Machine::handle_syscall(
 			newlist.first = new value::Object(*val);
 			newlist.last = new value::Object(*lst);
 			stack->push(newlist);
-			pc++;
 		}; break;
 
 
@@ -724,6 +723,40 @@ void vm::Machine::handle_syscall(
 				} else {
 					stack->push(value::Object());
 				}
+			}; break;
+
+
+
+		case SYS_STRCONV: {
+				value::Object str_o;
+				str_o.type = value::string;
+				auto s = arg.to_string(true);
+				str_o.string = new char[s.size()+1];
+				memcpy(str_o.string, s.c_str(), s.size() + 1);
+				stack->push(str_o);
+			}; break;
+
+		case SYS_STRLEN: {
+				stack->push((double)arg.to_string().size());
+			}; break;
+
+		case SYS_STRREF: {
+				stack->push((double)arg.to_string().size());
+			}; break;
+
+		case SYS_STRSET: {
+				stack->push((double)arg.to_string().size());
+			}; break;
+
+		case SYS_STRCAT: {
+				if (arg[0]->type != value::string || arg[0]->type != arg[1]->type) throw "string concatination requires two strings";
+				auto s = arg[0]->to_string(true) + arg[1]->to_string(true);
+				auto len = s.size();
+				value::Object str_o;
+				str_o.type = value::string;
+				str_o.string = new char[len+1];
+				memcpy(str_o.string, s.c_str(), len+1);
+				stack->push(str_o);
 			}; break;
 
 

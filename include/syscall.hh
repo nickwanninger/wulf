@@ -28,3 +28,9 @@
 
 #define SYS_EQUAL 25
 #define SYS_LT    26
+
+#define SYS_STRLEN 27
+#define SYS_STRREF 28
+#define SYS_STRSET 29
+#define SYS_STRCAT 30
+#define SYS_STRCONV 31

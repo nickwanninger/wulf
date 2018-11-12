@@ -31,6 +31,7 @@
 #include <scanner.hh>
 #include <getopt.h>
 #include <unistd.h>
+#include <autonum.hh>
 
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
@@ -38,51 +39,58 @@
 
 int main(int argc, char** argv) {
 	GC_init();
+
+	autonum a = 1;
+	while (a != 0) {
+		a *= 2;
+		std::cout << a << "\n";
+	}
+
 	srand((unsigned int)time(NULL));
 	try {
 
-	bool interactive = false;
+		bool interactive = false;
 
-	auto *state = new State();
-	char opt;
-	while ((opt = getopt(argc, argv, "i")) != -1) {
-		switch (opt) {
-		case 'i': interactive = true; break;
-		default:
-				fprintf(stderr, "Usage: %s [-i] [file]\n", argv[0]);
-				exit(EXIT_FAILURE);
-		}
-	}
-
-	if (optind >= argc) {
-		if (isatty(fileno(stdin))) {
-			state->run_repl();
-		} else {
-			std::string contents;
-			char buffer[STDIN_READ_SIZE];
-			while (fgets(buffer, STDIN_READ_SIZE, stdin)) {
-				contents += buffer;
+		auto *state = new State();
+		char opt;
+		while ((opt = getopt(argc, argv, "i")) != -1) {
+			switch (opt) {
+			case 'i': interactive = true; break;
+			default:
+					fprintf(stderr, "Usage: %s [-i] [file]\n", argv[0]);
+					exit(EXIT_FAILURE);
 			}
-			state->eval(const_cast<char*>(contents.c_str()));
 		}
+
+		if (optind >= argc) {
+			if (isatty(fileno(stdin))) {
+				state->run_repl();
+			} else {
+				std::string contents;
+				char buffer[STDIN_READ_SIZE];
+				while (fgets(buffer, STDIN_READ_SIZE, stdin)) {
+					contents += buffer;
+				}
+				state->eval(const_cast<char*>(contents.c_str()));
+			}
+			delete state;
+			exit(0);
+		}
+
+
+		// if there was a file argument, evaluate that instead
+		char* filepath = argv[optind];
+		state->eval_file(filepath);
+
+		// if the user requested interactive mode, do that.
+		if (interactive) {
+			state->run_repl();
+		}
+
+		// run a garbage collection run
+		GC_gcollect();
+
 		delete state;
-		exit(0);
-	}
-
-
-	// if there was a file argument, evaluate that instead
-	char* filepath = argv[optind];
-	state->eval_file(filepath);
-
-	// if the user requested interactive mode, do that.
-	if (interactive) {
-		state->run_repl();
-	}
-
-	// run a garbage collection run
-	GC_gcollect();
-
-	delete state;
 
 	} catch (std::string err) {
 		std::cerr << "Error: " << err << "\n";

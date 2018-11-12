@@ -151,5 +151,8 @@
       i)))
 
 
+(def (repeat val n)
+  (if (zero? n)
+    nil
+    (cons val (repeat val (dec n)))))
 
-(print (fib 20))

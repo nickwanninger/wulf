@@ -21,18 +21,6 @@ State::State() {
 	eval("(def (exit) (syscall 1 0))");
 	eval("(def (die n) (syscall 1 n))");
 
-	eval("(def (eval stmt) (syscall 2 stmt))");
-	eval("(def (apply f a) (eval (cons f a)))");
-
-	eval("(def (puts m) (syscall 7 m))");
-	eval("(def (print x) (do (puts x) (puts \"\n\")))");
-
-	eval("(def (list :rest l) l)");
-
-	eval("(def (load path) (syscall 8 path))");
-	eval("(def (type x) (syscall 9 x))");
-	eval("(def (sh :rest args) (syscall 10 args))");
-
 	eval("(def (+ :rest a) (syscall 11 a))");
 	eval("(def (- :rest a) (syscall 12 a))");
 	eval("(def (* :rest a) (syscall 13 a))");
@@ -46,8 +34,18 @@ State::State() {
 	eval("(def (<= a b) (not (> a b)))");
 
 	eval("(def (cons a b) (syscall 24 (list a b)))");
+	eval("(def (eval stmt) (syscall 2 stmt))");
+	eval("(def (apply f a) (eval (cons f a)))");
 
-	
+	eval("(def (puts m) (syscall 7 m))");
+	eval("(def (print x) (do (puts x) (puts \"\n\")))");
+
+	eval("(def (list :rest l) l)");
+
+	eval("(def (load path) (syscall 8 path))");
+	eval("(def (type x) (syscall 9 x))");
+	eval("(def (sh :rest args) (syscall 10 args))");
+
 
 
 	// define some basic +1 and -1 operations
@@ -59,6 +57,18 @@ State::State() {
 	eval("(def (nil? x) (= x nil))");
 	eval("(def (true? x) (not (= x nil)))");
 	eval("(def (zero? x) (= x 0))");
+
+	eval("(def (ident? n) (= (type n) :ident))");
+	eval("(def (list? n) (= (type n) :list))");
+	eval("(def (string? n) (= (type n) :string))");
+	eval("(def (procedure? n) (= (type n) :procedure))");
+	eval("(def (keyword? n) (= (type n) :keyword))");
+
+	eval("(def (str v) (syscall 31 v))");
+	eval("(def (string-length s) (syscall 27 s))");
+	eval("(def (string-concat s1 s2) (syscall 30 (list s1 s2)))");
+	eval("(def (string v) (string-concat "" v))");
+
 
 	eval("(def (car l) (syscall 19 l))");
 	eval("(def (cdr l) (syscall 20 l))");
@@ -155,7 +165,7 @@ void State::eval(char* source) {
 				scope->root->set(name.str(), top);
 				repl_index++;
 				if (top.type != value::nil)
-					std::cout << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
+					std::cout << "\x1B[90m" << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
 			}
 		}
 	}
@@ -199,11 +209,7 @@ void State::run_repl() {
 	repl = true;
 	char* buf;
 	while (true) {
-
-
-		std::ostringstream pr;
-		pr << "> ";
-		buf = linenoise(pr.str().c_str());
+		buf = linenoise("# ");
 
 		std::cout << RST;
 		if (buf == nullptr) break;
