@@ -67,7 +67,7 @@
 "#!".*   ; // ignore crunch bang
 
 "`" {
-	return TOK_UNQUOTE;
+	return TOK_QUASIQUOTE;
 }
 
 "," {

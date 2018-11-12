@@ -7,6 +7,10 @@
 #include <linenoise.h>
 
 
+
+#define BIT(num, n) (((num) >> (n)) & 1)
+#define BITAD(b) ((b) == 0 ? 'a' : 'd')
+
 State::State() {
 	scope = new scope::Scope();
 	scope->install_default_bindings();
@@ -33,8 +37,6 @@ State::State() {
 	eval("(def (* a b) (syscall 13 (list a b)))");
 	eval("(def (/ a b) (syscall 14 (list a b)))");
 
-	eval("(def (car l) (syscall 19 l))");
-	eval("(def (cdr l) (syscall 20 l))");
 
 	// define some basic +1 and -1 operations
 	eval("(def (inc a) (+ a 1))");
@@ -45,6 +47,28 @@ State::State() {
 	eval("(def (nil? x) (= x nil))");
 	eval("(def (true? x) (not (= x nil)))");
 	eval("(def (zero? x) (= x 0))");
+
+	eval("(def (car l) (syscall 19 l))");
+	eval("(def (cdr l) (syscall 20 l))");
+
+	// this bit of monsterous code generates all the car and cdr combinations
+	// anyone would ever reasonably need
+	std::ostringstream carcdrs;
+	for (int n = 2; n <= 4; n++) {
+		for (int i = 0; i < 1 << n; i++) {
+			std::ostringstream name;
+			std::ostringstream body;
+			for (int b = 0; b < n; b++) {
+				char c = BITAD(BIT(i, b));
+				name << c;
+				body << "(c" << c << "r ";
+			}
+			carcdrs << "(def (c" << name.str() << "r x) " << body.str() << "x";
+			for (int p = 0; p <= n; p++) carcdrs << ")";
+			carcdrs << "\n";
+		}
+	}
+	eval(carcdrs.str().c_str());
 }
 
 

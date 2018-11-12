@@ -115,11 +115,10 @@ value::Object* Parser::parse_list() {
 }
 
 
-value::Object* Parser::parse_quote() {
-	requires(TOK_QUOTE);
+value::Object* Parser::parse_quote_variant(const char* variant) {
 	auto *obj = new value::Object();
 	obj->type = value::list;
-	obj->first = new value::Object("quote");
+	obj->first = new value::Object(variant);
 	obj->first->type = value::ident;
 	next();
 	obj->last = new value::Object();
@@ -160,7 +159,14 @@ value::Object* Parser::parse_expr() {
 		case TOK_IDENTIFIER:
 			return parse_ident();
 		case TOK_QUOTE:
-			return parse_quote();
+			return parse_quote_variant("quote");
+		case TOK_QUASIQUOTE:
+			return parse_quote_variant("quasiquote");
+		case TOK_UNQUOTE:
+			return parse_quote_variant("unquote");
+		case TOK_UNQUOTE_SPLICING:
+			return parse_quote_variant("unquote-splicing");
+
 		case TOK_KEYWORD: {
 				auto kw = new value::Object();
 				kw->type = value::keyword;

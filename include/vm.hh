@@ -22,6 +22,7 @@ namespace vm {
 				long long whole;
 				char* string;
 				value::Object* object;
+				void *ptr;
 			};
 			Instruction(opcode_t);
 			Instruction(opcode_t, double);

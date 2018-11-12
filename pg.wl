@@ -28,6 +28,13 @@
   (not (> a b)))
 
 
+(def (nth n l)
+  ; return nil if the user asks for anything less than 0
+  (if (< n 0) nil
+  (if (zero? n)
+    (first l)
+    (nth (dec n) (rest l)))))
+
 (def (append l1 l2)
   (if (nil? l1)
     l2
@@ -62,7 +69,7 @@
 
 (def (pow b n)
   (if (= n 0)
-    s
+    1
     (* b (pow b (- n 1)))))
 
 
@@ -135,7 +142,10 @@
     (cons (list (first l1) (first l2))
           (zip (rest l1) (rest l2)))))
 
-(def (rng) (syscall 22 nil))
+(def (rand) (syscall 22 nil))
+
+(def (rand-range l u)
+  (+ (* (rand) (- u l)) l))
 
 ;; 244
 (def (make-account balance)
@@ -160,9 +170,5 @@
     (do
       (set! i (inc i))
       i)))
-
-(print (eval '(+ 1 2)))
-
-
 
 ; (defmacro let (vars body) nil)
