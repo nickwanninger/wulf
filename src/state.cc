@@ -85,7 +85,7 @@ void State::eval(char* source) {
 	try {
 		nodes = parser->parse_top_level();
 	} catch (const char* msg) {
-		std::cout << "Parse Error: " << msg << "\n";
+		std::cerr << "Parse Error: " << msg << "\n";
 		return;
 	}
 
@@ -109,7 +109,7 @@ void State::eval(char* source) {
 		try {
 			node->compile(machine, &bc);
 		} catch (const char* err) {
-			std::cout << "Compilation Failed: " << err << "\n";
+			std::cerr << "Compilation Failed: " << err << "\n";
 			return;
 		}
 
@@ -126,12 +126,12 @@ void State::eval(char* source) {
 		try {
 			machine->eval(bc, scope);
 		} catch (const char* err) {
-			std::cout << "Evaluation Failed: " << err << "\n";
+			std::cerr << "Evaluation Failed: " << err << "\n";
 			machine->stack->dump();
 			if (!repl) exit(1);
 			return;
 		} catch (std::string err) {
-			std::cout << "Evaluation Failed: " << err << "\n";
+			std::cerr << "Evaluation Failed: " << err << "\n";
 			machine->stack->dump();
 			if (!repl) exit(1);
 			return;
