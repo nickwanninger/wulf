@@ -434,6 +434,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					int passedc = in.whole;
 					std::vector<value::Argument> argnames = *callable.args;
 					std::vector<value::Object> arglist;
+
 					// pop off the args in the right order.
 					for (i = 0; i < passedc; i++) {
 						auto arg = stack->pop();
@@ -445,7 +446,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 
 					for (i = 0; i < passedc; i++) {
+						if (i >= argnames.size()) throw "too many arguments passed to function";
 						value::Argument argname = argnames[i];
+
 						if (argname.type == value::plain) {
 							newscope->set(std::string(argname.name), arglist[i]);
 						} else if (argname.type == value::rest) {
@@ -455,7 +458,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 								lst.append(arglist[i++]);
 							}
 							newscope->set(std::string(argname.name), lst);
-						}
+						} else throw "invalid number of arguments passed to function call";
 					}
 
 					if (i < callable.args->size()) throw "invalid number of arguments passed to function call";

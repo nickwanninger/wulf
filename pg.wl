@@ -155,10 +155,6 @@
 
 ; calling account-1 will withdraw from the state
 ;and return the new balance
-(def A1 (make-account 100))
-(def A2 (make-account 100))
-
-
 
 (def (make-counter i)
   (fn ()
@@ -167,10 +163,5 @@
       i)))
 
 
-
 ; (defmacro let (vars body) nil)
-
-
-
-
 
