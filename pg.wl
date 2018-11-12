@@ -10,18 +10,6 @@
 (def ($ a f b) (f a b))
 
 
-; define gt because the language only defines lt
-(def (> a b)
-  (if (not (or (< a b) (= a b)))
-    t nil))
-
-(def (>= a b)
-  (not (< a b)))
-
-(def (<= a b)
-  (not (> a b)))
-
-
 (def (nth n l)
   ; return nil if the user asks for anything less than 0
   (if (< n 0) nil
@@ -163,5 +151,5 @@
       i)))
 
 
-; (defmacro let (vars body) nil)
 
+(print (fib 20))

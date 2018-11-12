@@ -38,6 +38,17 @@ State::State() {
 	eval("(def (* :rest a) (syscall 13 a))");
 	eval("(def (/ :rest a) (syscall 14 a))");
 
+	eval("(def (= a b) (syscall 25 (list a b)))");
+	eval("(def (< a b) (syscall 26 (list a b)))");
+
+	eval("(def (> a b) (not (or (< a b) (= a b))))");
+	eval("(def (>= a b) (not (< a b)))");
+	eval("(def (<= a b) (not (> a b)))");
+
+	eval("(def (cons a b) (syscall 24 (list a b)))");
+
+	
+
 
 	// define some basic +1 and -1 operations
 	eval("(def (inc a) (+ a 1))");

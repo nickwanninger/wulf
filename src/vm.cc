@@ -167,9 +167,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_NOT); break;
 
 		OP_STRING(OP_CALL) << "\t" << whole; break;
-		OP_STRING(OP_CONS); break;
 		OP_STRING(OP_EXIT); break;
-		OP_STRING(OP_EQUAL); break;
 		OP_STRING(OP_INTERN); break;
 		OP_STRING(OP_PUSH_RAW) << "\t" << object->to_string(); break;
 		OP_STRING(OP_RETURN); break;
@@ -258,59 +256,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				} break;
 
 
-
-			case OP_LT: {
-					auto a2 = stack->pop();
-					auto a1 = stack->pop();
-					if (a2.type != a1.type || a2.type != value::number) throw "attempt to compare two non-numbers";
-					if (a1.number < a2.number) {
-						auto t = value::Object("t");
-						t.type = value::ident;
-						stack->push(t);
-					} else {
-						stack->push(value::Object());
-					}
-					pc++;
-				}; break;
-
-			case OP_EQUAL: {
-						auto a = stack->pop();
-						auto b = stack->pop();
-
-						auto tr = value::Object("t");
-						tr.type = value::ident;
-						if (a.type == b.type && a.type == value::number) {
-							if (a.number == b.number) {
-								stack->push(tr);
-								pc++;
-								break;
-							} else {
-								stack->push(value::Object());
-								pc++;
-								break;
-							}
-						}
-						// special case nil and list comparison
-						// todo: wrap this all in an `==` overloaded operator
-						if (a.type == value::list || b.type == value::list) {
-							if (a.type == value::list || b.type == value::list) {
-								auto the_list = a.type == value::list ? a : b;
-								auto the_nil = a.type == value::nil ? a : b;
-								if (the_list.length() != 0) {
-									stack->push(value::Object(value::nil));
-									pc++;
-									break;
-								}
-							}
-						} else if (a.type != b.type || a.to_string() != b.to_string()) {
-							stack->push(value::Object(value::nil));
-							pc++;
-							break;
-						}
-						stack->push(tr);
-						pc++;
-						break;
-					}
 			case OP_INTERN: {
 						auto str = stack->pop();
 						if (str.type != value::string) throw "attempt to intern non-string";
@@ -356,23 +301,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				} break;
 
 
-			case OP_CONS: {
-					auto val = stack->pop();
-					auto lst = stack->pop();
-					if (lst.type != value::list) {
-						if (lst.type == value::nil) {
-							lst.type = value::list;
-						} else {
-							throw "attempt to cons to non-list";
-						}
-					}
-					auto newlist = value::Object();
-					newlist.type = value::list;
-					newlist.first = new value::Object(val);
-					newlist.last = new value::Object(lst);
-					stack->push(newlist);
-					pc++;
-				} break;
 
 
 			case OP_EXIT: {
@@ -536,6 +464,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						pc = in.whole;
 					else pc++;
 				}; break;
+
+
 
 			default:
 				std::ostringstream err;
@@ -721,6 +651,81 @@ void vm::Machine::handle_syscall(
 			num.number = x;
 			stack->push(num);
 		}; break;
+
+		case SYS_GC_COLLECT: {
+			size_t start = GC_get_heap_size();
+			GC_gcollect();
+			size_t diff = GC_get_heap_size();
+			auto num = value::Object(value::number);
+			num.number = diff;
+			stack->push(num);
+		}; break;
+
+		case SYS_CONS: {
+			auto val = arg[0];
+			auto lst = arg[1];
+			if (lst->type != value::list) {
+				if (lst->type == value::nil) {
+					lst->type = value::list;
+				} else {
+					throw "attempt to cons to non-list";
+				}
+			}
+			auto newlist = value::Object();
+			newlist.type = value::list;
+			newlist.first = new value::Object(*val);
+			newlist.last = new value::Object(*lst);
+			stack->push(newlist);
+			pc++;
+		}; break;
+
+
+
+		case SYS_EQUAL: {
+				auto a = *arg[0];
+				auto b = *arg[1];
+				auto tr = value::Object("t");
+				tr.type = value::ident;
+				if (a.type == b.type && a.type == value::number) {
+					if (a.number == b.number) {
+						stack->push(tr);
+					} else {
+						stack->push(value::Object());
+					}
+					return;
+				}
+				// special case nil and list comparison
+				// todo: wrap this all in an `==` overloaded operator
+				if (a.type == value::list || b.type == value::list) {
+					if (a.type == value::nil || b.type == value::nil) {
+						auto the_list = a.type == value::list ? a : b;
+						auto the_nil = a.type == value::nil ? a : b;
+						if (the_list.length() != 0) {
+							stack->push(value::Object(value::nil));
+						}
+					}
+				} else if (a.type != b.type || a.to_string() != b.to_string()) {
+					stack->push(value::Object(value::nil));
+				} else {
+					stack->push(tr);
+				}
+			}; break;
+
+
+
+		case SYS_LT: {
+				auto a1 = *arg[0];
+				auto a2 = *arg[1];
+				if (a2.type != a1.type || a2.type != value::number) throw "attempt to compare two non-numbers";
+				if (a1.number < a2.number) {
+					auto t = value::Object("t");
+					t.type = value::ident;
+					stack->push(t);
+				} else {
+					stack->push(value::Object());
+				}
+			}; break;
+
 
 		default: {
 			stack->push(value::Object());

@@ -302,24 +302,6 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						return;
 					}
 
-					ifcall(cons) {
-						if (length() != 3) throw "call to cons requires 2 arguments";
-
-						auto self = *this;
-						self[2]->compile(machine, bc);
-						self[1]->compile(machine, bc);
-						bc->push(OP_CONS);
-						return;
-					}
-
-
-					ifcall(=) {
-						if (last->first == NULL || last->last->first == NULL) throw "call to = requires two arguments";
-						last->first->compile(machine, bc);
-						last->last->first->compile(machine, bc);
-						bc->push(OP_EQUAL);
-						return;
-					}
 
 					ifcall(intern) {
 						if (last->first == NULL) throw "call to intern requires an argument";
@@ -358,17 +340,6 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						self[3]->compile(machine, bc);
 						bc->push(OP_NOP);
 						bc->instructions[theni].whole = bc->instructions.size() - 1;;
-
-						return;
-					}
-
-					ifcall(<) {
-
-						if (length() != 3) throw "call to '<' requires 2 arguments";
-						auto self = *this;
-						self[1]->compile(machine, bc);
-						self[2]->compile(machine, bc);
-						bc->push(OP_LT);
 
 						return;
 					}
