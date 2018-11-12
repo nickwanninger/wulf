@@ -4,17 +4,11 @@
     i
     (reduce f (f i (car xs)) (cdr xs))))
 
-
-
 (def (first l) (syscall 19 l))
 (def (rest l) (syscall 20 l))
 
 (def ($ a f b) (f a b))
 
-(def (* :rest args)
-  (reduce (fn (a b) (syscall 13 (list a b))) 1 args))
-(def (+ :rest args)
-  (reduce (fn (a b) (syscall 11 (list a b))) 0 args))
 
 ; define gt because the language only defines lt
 (def (> a b)
@@ -122,7 +116,8 @@
 (def (range a b)
   (if (< a b) (cons a (range (inc a) b))))
 
-(def (zero-to a) (range 0 a))
+(def (zero-to a) (range 0 (inc a)))
+(def (zero-upto a) (range 0 a))
 
 (def pi 3.14159265359)
 
@@ -171,4 +166,11 @@
       (set! i (inc i))
       i)))
 
+
+
 ; (defmacro let (vars body) nil)
+
+
+
+
+

@@ -22,6 +22,7 @@ State::State() {
 	eval("(def (die n) (syscall 1 n))");
 
 	eval("(def (eval stmt) (syscall 2 stmt))");
+	eval("(def (apply f a) (eval (cons f a)))");
 
 	eval("(def (puts m) (syscall 7 m))");
 	eval("(def (print x) (do (puts x) (puts \"\n\")))");
@@ -32,10 +33,10 @@ State::State() {
 	eval("(def (type x) (syscall 9 x))");
 	eval("(def (sh :rest args) (syscall 10 args))");
 
-	eval("(def (+ a b) (syscall 11 (list a b)))");
-	eval("(def (- a b) (syscall 12 (list a b)))");
-	eval("(def (* a b) (syscall 13 (list a b)))");
-	eval("(def (/ a b) (syscall 14 (list a b)))");
+	eval("(def (+ :rest a) (syscall 11 a))");
+	eval("(def (- :rest a) (syscall 12 a))");
+	eval("(def (* :rest a) (syscall 13 a))");
+	eval("(def (/ :rest a) (syscall 14 a))");
 
 
 	// define some basic +1 and -1 operations

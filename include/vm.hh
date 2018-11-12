@@ -6,11 +6,13 @@
 #include <value.hh>
 #include <opcode.hh>
 #include <state.hh>
+#include <stack>
 
 typedef value::Object stackval;
 
 
 namespace vm {
+
 
 	/*
 	 */
@@ -57,6 +59,11 @@ namespace vm {
 			stackval pop();
 	};
 
+	typedef struct {
+		vm::Bytecode bc;
+		long long pc;
+	} bytecode_stack_obj_t;
+
 	class Machine {
 		private:
 		public:
@@ -65,6 +72,7 @@ namespace vm {
 			State* state;
 			Machine();
 			void eval(Bytecode, scope::Scope*);
+			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object);
 	};
 
 }

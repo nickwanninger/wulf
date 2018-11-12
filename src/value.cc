@@ -405,9 +405,11 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 			bc->push(vm::Instruction(OP_PUSH_NUM, number));
 			return;
 
-		case value::procedure:
-			bc->push(vm::Instruction(OP_NOP));
-			break;
+		case value::procedure: {
+				auto inst = vm::Instruction(OP_PUSH_RAW);
+				inst.object = this;
+				bc->push(inst);
+			}; break;
 
 		case value::ident: {
 				auto inst = vm::Instruction(OP_PUSH_LOOKUP);

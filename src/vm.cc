@@ -193,27 +193,12 @@ Machine::Machine() {
 	stack = new Stack();
 }
 
-#define OP_BINARY(op) {                                             \
-	auto b = arg2[1];                                                 \
-	auto a = arg2[0];                                                 \
-	if (a->type == b->type && a->type == value::number) {             \
-		stack->push(value::Object(a->number op b->number));             \
-	} else {                                                          \
-		throw "attempt to perform math on two non-number values";       \
-	}                                                                 \
-};
 
 #define EVAL_DEBUG
 
 #define VAL_TRUE(val) ((val).type != value::nil)
 
 long long call_count = 0;
-
-
-typedef struct {
-	vm::Bytecode bc;
-	long long pc;
-} bytecode_stack_obj_t;
 
 void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 	scope::Scope* sc = calling_scope;
@@ -441,6 +426,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					int i;
 					auto callable = stack->pop();
 					if (callable.type != value::procedure) {
+						std::cout << "CALLABLE: " << callable.to_string() << "\n";
 						throw "attempt to call non-procedure";
 					}
 
@@ -498,7 +484,11 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 			// BC_RETURN only pops the bytecode.
 			//   this is used at the end of an eval
 			case OP_BC_RETURN: {
-					if (bc_stk.size() != 1)	bc_stk.pop();
+					if (bc_stk.size() != 1) {
+						bc_stk.pop();
+					} else {
+						throw "no returning bytecode for BC_RETURN";
+					}
 					pc++;
 				}; break;
 
@@ -513,109 +503,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					if (arg1.type != value::number) throw "attempt to call syscall with non-number as first argument";
 					int syscalli = arg1.number;
 
-					// 0 = exit
-					if (syscalli == SYS_EXIT) {
-						if (arg2.type == value::number) {
-							exit(arg2.number);
-						} else {
-							std::cout << arg2.to_string(true) << "\n";
-							exit(1);
-						}
-					}
+					handle_syscall(bc_stk, sc, pc, in, syscalli, arg2);
 
-					if (syscalli == SYS_EVAL) {
-						Bytecode evalbc;
-						arg2.compile(this, &evalbc);
-						evalbc.push(OP_BC_RETURN);
-						bytecode_stack_obj_t ev;
-						ev.bc = evalbc;
-						ev.pc = 0;
-						bc_stk.push(ev);
-					}
-
-					if (syscalli == SYS_PRINT) {
-						std::cout << arg2.to_string(true);
-					}
-
-					if (syscalli == SYS_LOAD) {
-						if (arg2.type != value::string) throw "syscall load requires a string filepath";
-						bool repls = state->repl;
-						state->repl = false;
-						char* path = (char*)arg2.to_string(true).c_str();
-						state->eval_file(path);
-						state->repl = repls;
-					}
-
-					if (syscalli == SYS_TYPE) {
-						auto val = arg2;
-						auto type_kw = value::Object(value::keyword);
-						type_kw.type = value::keyword;
-						type_kw.string = (char*)":unknown";
-						using namespace value;
-						#define TYPEOFVALUE(x) if (val.type == x) {type_kw.string = strdup(":"#x);}
-						TYPEOFVALUE(list);
-						TYPEOFVALUE(ident);
-						TYPEOFVALUE(string);
-						TYPEOFVALUE(number);
-						TYPEOFVALUE(procedure);
-						TYPEOFVALUE(keyword);
-						TYPEOFVALUE(nil);
-						stack->push(type_kw);
-					}
-
-					if (syscalli == SYS_SHELL) {
-						if (arg2.type != value::list) throw "shell systemcall requires a list of strings";
-
-						int len = arg2.length();
-						stack->push(value::Object());
-					}
-
-					if (syscalli == SYS_ADD) OP_BINARY(+);
-					if (syscalli == SYS_SUB) OP_BINARY(-);
-					if (syscalli == SYS_MUL) OP_BINARY(*);
-					if (syscalli == SYS_DIV) OP_BINARY(/);
-
-
-					if (syscalli == SYS_CAR) {
-						auto lst = arg2;
-						if (lst.type != value::list) {
-							if (lst.type == value::nil) {
-								stack->push(value::Object());
-							} else {
-								throw "attempt to car non-list";
-							}
-						} else {
-							stack->push(*lst.first);
-						}
-					}
-
-					if (syscalli == SYS_CDR) {
-						auto lst = arg2;
-						if (lst.type != value::list) {
-							if (lst.type == value::nil) {
-								stack->push(value::Object());
-							} else {
-								throw "attempt to cdr non-list";
-							}
-						} else {
-							if (lst.last == NULL) {
-								stack->push(value::Object(value::nil));
-							} else {
-								if ((*lst.last).length() == 0) {
-									stack->push(value::Object());
-								} else {
-									stack->push(*lst.last);
-								}
-							}
-						}
-					}
-
-					if (syscalli == SYS_RNG) {
-						double x = (double)rand()/(double)(RAND_MAX);
-						auto num = value::Object(value::number);
-						num.number = x;
-						stack->push(num);
-					}
 
 					pc++;
 				}; break;
@@ -658,4 +547,181 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 
 	return;
+}
+
+
+#define OP_BINARY(op) {                                             \
+	auto b = arg[1];                                                  \
+	auto a = arg[0];                                                  \
+	if (a->type == b->type && a->type == value::number) {             \
+		stack->push(value::Object(a->number op b->number));             \
+	} else {                                                          \
+		throw "attempt to perform math on two non-number values";       \
+	}                                                                 \
+};
+void vm::Machine::handle_syscall(
+		std::stack<bytecode_stack_obj_t> & bc_stk, \
+		scope::Scope* & sc,
+		long long & pc,
+		vm::Instruction & inst,
+		int syscalli,
+		value::Object arg) {
+	// 0 = exit
+	//
+	switch (syscalli) {
+		case (SYS_EXIT): {
+			if (arg.type == value::number) {
+				exit(arg.number);
+			} else {
+				std::cout << arg.to_string(true) << "\n";
+				exit(1);
+			}
+		}; break;
+
+		case SYS_EVAL: {
+			Bytecode evalbc;
+			arg.compile(this, &evalbc);
+			evalbc.push(OP_BC_RETURN);
+			bc_stk.push({evalbc, 0});
+		}; break;
+
+		case SYS_PRINT: {
+			std::cout << arg.to_string(true);
+		}; break;
+
+		case SYS_LOAD: {
+			if (arg.type != value::string) throw "syscall load requires a string filepath";
+			bool repls = state->repl;
+			state->repl = false;
+			char* path = (char*)arg.to_string(true).c_str();
+			state->eval_file(path);
+			state->repl = repls;
+		}; break;
+
+		case SYS_TYPE: {
+			auto val = arg;
+			auto type_kw = value::Object(value::keyword);
+			type_kw.type = value::keyword;
+			type_kw.string = (char*)":unknown";
+			using namespace value;
+			#define TYPEOFVALUE(x) if (val.type == x) {type_kw.string = strdup(":"#x);}
+			TYPEOFVALUE(list);
+			TYPEOFVALUE(ident);
+			TYPEOFVALUE(string);
+			TYPEOFVALUE(number);
+			TYPEOFVALUE(procedure);
+			TYPEOFVALUE(keyword);
+			TYPEOFVALUE(nil);
+			stack->push(type_kw);
+		}; break;
+
+		case SYS_SHELL: {
+			if (arg.type != value::list) throw "shell systemcall requires a list of strings";
+			int len = arg.length();
+			stack->push(value::Object());
+		}; break;
+
+		case SYS_ADD: {
+				double total = 0;
+				if (arg.type != value::list) throw "add syscall requires a list of arguments to add";
+				int len = arg.length();
+				for (int i = 0; i < len; i++) {
+					auto *v = arg[i];
+					if (v->type != value::number) throw "add requires only numbers";
+					total += arg[i]->number;
+				}
+				stack->push(total);
+			}; break;
+
+		case SYS_SUB	: {
+				double total = 0;
+				if (arg.type != value::list) throw "subtraction syscall requires a list of arguments to add";
+				int len = arg.length();
+
+				if (arg[0]->type != value::number) throw "subtraction requires only numbers";
+				if (len == 1) {
+					total = -arg[0]->number;
+				} else {
+					total = arg[0]->number;
+					for (int i = 1; i < len; i++) {
+						auto *v = arg[i];
+						if (v->type != value::number) throw "subtraction requires only numbers";
+						total -= arg[i]->number;
+					}
+				}
+				stack->push(total);
+			}; break;
+
+		case SYS_MUL: {
+				double total = 1;
+				if (arg.type != value::list) throw "multiplication syscall requires a list of arguments";
+				int len = arg.length();
+				for (int i = 0; i < len; i++) {
+					auto *val = arg[i];
+					if (val->type != value::number) throw "multiplication requires only numbers";
+					total *= val->number;
+				}
+				stack->push(total);
+			}; break;
+		case SYS_DIV: {
+				if (arg.type != value::list) throw "division syscall requires a list of arguments";
+				int len = arg.length();
+				if (arg.length() < 2) throw "division requires at least two arguments";
+				if (arg[0]->type != value::number) throw "division requires only numbers";
+				double total = arg[0]->number;
+				for (int i = 0; i < len; i++) {
+					auto *val = arg[i];
+					if (val->type != value::number) throw "division requires only numbers";
+					total /= val->number;
+				}
+				stack->push(total);
+			}; break;
+
+
+		case SYS_CAR: {
+			auto lst = arg;
+			if (lst.type != value::list) {
+				if (lst.type == value::nil) {
+					stack->push(value::Object());
+				} else {
+					throw "attempt to car non-list";
+				}
+			} else {
+				stack->push(*lst.first);
+			}
+		}; break;
+
+		case SYS_CDR: {
+			auto lst = arg;
+			if (lst.type != value::list) {
+				if (lst.type == value::nil) {
+					stack->push(value::Object());
+				} else {
+					throw "attempt to cdr non-list";
+				}
+			} else {
+				if (lst.last == NULL) {
+					stack->push(value::Object(value::nil));
+				} else {
+					if ((*lst.last).length() == 0) {
+						stack->push(value::Object());
+					} else {
+						stack->push(*lst.last);
+					}
+				}
+			}
+		}; break;
+
+		case SYS_RNG: {
+			double x = (double)rand()/(double)(RAND_MAX);
+			auto num = value::Object(value::number);
+			num.number = x;
+			stack->push(num);
+		}; break;
+
+		default: {
+			stack->push(value::Object());
+			std::cerr << "unknown syscall " << syscalli << ". ignoring and returning nil\n";
+		}
+	}
 }
