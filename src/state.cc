@@ -127,12 +127,10 @@ void State::eval(char* source) {
 			machine->eval(bc, scope);
 		} catch (const char* err) {
 			std::cerr << "Evaluation Failed: " << err << "\n";
-			machine->stack->dump();
 			if (!repl) exit(1);
 			return;
 		} catch (std::string err) {
 			std::cerr << "Evaluation Failed: " << err << "\n";
-			machine->stack->dump();
 			if (!repl) exit(1);
 			return;
 		}
