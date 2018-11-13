@@ -44,7 +44,7 @@ State::State() {
 
 	eval("(def (load path) (syscall 8 path))");
 	eval("(def (type x) (syscall 9 x))");
-	eval("(def (sh :rest args) (syscall 10 args))");
+	eval("(def (sh cmd) (syscall 10 cmd))");
 
 
 

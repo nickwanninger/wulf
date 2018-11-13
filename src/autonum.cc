@@ -15,6 +15,11 @@ autonum::autonum(int64_t v) {
 	ni = v;
 }
 
+autonum::autonum(long long v) {
+	type = integer;
+	ni = v;
+}
+
 #define AUTONUM_OP_BODY(op) \
 	if (type == floating) { \
 		if (other.type == floating) return nf op other.nf; \

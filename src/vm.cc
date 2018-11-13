@@ -483,6 +483,25 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 }
 
 
+std::string eval_shell_cmd(char* cmdc) {
+	std::string cmd = cmdc;
+	cmd += " 2>&1";
+	std::string data;
+
+	const int max_buffer = 256;
+	char buffer[max_buffer];
+
+	FILE* stream = popen(cmd.c_str(), "r");
+	if (stream) {
+		while (!feof(stream)) {
+			if (fgets(buffer, max_buffer, stream) != NULL) data += buffer;
+		}
+		pclose(stream);
+	}
+	return data;
+}
+
+
 #define OP_BINARY(op) {                                             \
 	auto b = arg[1];                                                  \
 	auto a = arg[0];                                                  \
@@ -549,9 +568,12 @@ void vm::Machine::handle_syscall(
 		}; break;
 
 		case SYS_SHELL: {
-			if (arg.type != value::list) throw "shell systemcall requires a list of strings";
-			int len = arg.length();
-			stack->push(value::Object());
+			if (arg.type != value::string) throw "shell systemcall requires string command to be executed with `sh -c '...'`";
+			std::string data = eval_shell_cmd(arg.string);
+			value::Object obj;
+			obj.type = value::string;
+			obj.string = strdup(data.c_str());
+			stack->push(obj);
 		}; break;
 
 		case SYS_ADD: {

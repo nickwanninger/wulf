@@ -23,6 +23,7 @@ class autonum {
 		autonum(double);
 		autonum(int);
 		autonum(int64_t);
+		autonum(long long);
 		autonum operator+(const autonum & other);
 		autonum operator-(const autonum & other);
 		autonum operator*(const autonum & other);

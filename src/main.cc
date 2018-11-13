@@ -40,12 +40,6 @@
 int main(int argc, char** argv) {
 	GC_init();
 
-	autonum a = 1;
-	while (a != 0) {
-		a *= 2;
-		std::cout << a << "\n";
-	}
-
 	srand((unsigned int)time(NULL));
 	try {
 
