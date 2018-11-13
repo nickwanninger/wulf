@@ -15,11 +15,6 @@ autonum::autonum(int64_t v) {
 	ni = v;
 }
 
-autonum::autonum(long long v) {
-	type = integer;
-	ni = v;
-}
-
 #define AUTONUM_OP_BODY(op) \
 	if (type == floating) { \
 		if (other.type == floating) return nf op other.nf; \
@@ -29,64 +24,77 @@ autonum::autonum(long long v) {
 		if (other.type == floating) return ni op other.nf; \
 		if (other.type == integer) return ni op other.ni; \
 	} \
-	return 0ll; \
 
 autonum autonum::operator+(const autonum & other) {
 	AUTONUM_OP_BODY(+);
+	return autonum(0);
 }
 
 autonum autonum::operator-(const autonum & other) {
 	AUTONUM_OP_BODY(-);
+	return autonum(0);
 }
 
 autonum autonum::operator*(const autonum & other) {
 	AUTONUM_OP_BODY(*);
+	return autonum(0);
 }
 
 autonum autonum::operator/(const autonum & other) {
 	AUTONUM_OP_BODY(/);
+	return autonum(0);
 }
 
 
 autonum autonum::operator+=(const autonum & other) {
 	AUTONUM_OP_BODY(+=);
+	return autonum(0);
 }
 
 autonum autonum::operator-=(const autonum & other) {
 	AUTONUM_OP_BODY(-=);
+	return autonum(0);
 }
 
 autonum autonum::operator*=(const autonum & other) {
 	AUTONUM_OP_BODY(*=);
+	return autonum(0);
 }
 
 autonum autonum::operator/=(const autonum & other) {
 	AUTONUM_OP_BODY(/=);
+	return autonum(0);
 }
 
 
 bool autonum::operator==(const autonum & other) {
 	AUTONUM_OP_BODY(==);
+	return false;
 }
 
 bool autonum::operator!=(const autonum & other) {
 	AUTONUM_OP_BODY(!=);
+	return false;
 }
 
 bool autonum::operator<(const autonum & other) {
 	AUTONUM_OP_BODY(<);
+	return false;
 }
 
 bool autonum::operator<=(const autonum & other) {
 	AUTONUM_OP_BODY(<=);
+	return false;
 }
 
 bool autonum::operator>(const autonum & other) {
 	AUTONUM_OP_BODY(==);
+	return false;
 }
 
 bool autonum::operator>=(const autonum & other) {
 	AUTONUM_OP_BODY(!=);
+	return false;
 }
 #define AUTONUM_CAST_IMPL(t) t autonum::to_##t() { return (type == integer) ? (t)ni : (t)nf; }
 

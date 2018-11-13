@@ -182,7 +182,7 @@ value::Object* Parser::parse_expr() {
 				return s;
 			}
 	}
-	std::cout << "unexpected token " << tok.type << "\n";
+	std::cout << "unexpected token " << tok.type << "'" << tok.value << "'\n";
 	throw "oops";
 	next();
 	return new value::Object();

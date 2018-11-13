@@ -36,6 +36,10 @@
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
 
+#define PROMPT_HEADER \
+"Wulf Lisp\n" \
+"Type 'wulf/copyright', 'wulf/warranty' or, 'wulf/help' for more information"\
+
 
 int main(int argc, char** argv) {
 	GC_init();
@@ -58,6 +62,7 @@ int main(int argc, char** argv) {
 
 		if (optind >= argc) {
 			if (isatty(fileno(stdin))) {
+				std::cout << PROMPT_HEADER << "\n";
 				state->run_repl();
 			} else {
 				std::string contents;

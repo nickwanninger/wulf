@@ -6,8 +6,6 @@
 #include <parser.hh>
 #include <linenoise.h>
 
-
-
 #define BIT(num, n) (((num) >> (n)) & 1)
 #define BITAD(b) ((b) == 0 ? 'a' : 'd')
 
@@ -16,62 +14,11 @@ State::State() {
 	scope->install_default_bindings();
 	machine = new vm::Machine();
 	machine->state = this;
-
-	// define some basic functions
-	eval("(def (exit) (syscall 1 0))");
-	eval("(def (die n) (syscall 1 n))");
-
-	eval("(def (+ :rest a) (syscall 11 a))");
-	eval("(def (- :rest a) (syscall 12 a))");
-	eval("(def (* :rest a) (syscall 13 a))");
-	eval("(def (/ :rest a) (syscall 14 a))");
-
-	eval("(def (= a b) (syscall 25 (list a b)))");
-	eval("(def (< a b) (syscall 26 (list a b)))");
-
-	eval("(def (> a b) (not (or (< a b) (= a b))))");
-	eval("(def (>= a b) (not (< a b)))");
-	eval("(def (<= a b) (not (> a b)))");
-
-	eval("(def (cons a b) (syscall 24 (list a b)))");
-	eval("(def (eval stmt) (syscall 2 stmt))");
-	eval("(def (apply f a) (eval (cons f a)))");
-
-	eval("(def (puts m) (syscall 7 m))");
-	eval("(def (print x) (do (puts x) (puts \"\n\")))");
-
-	eval("(def (list :rest l) l)");
-
+	// bootstrap the load procedure
 	eval("(def (load path) (syscall 8 path))");
-	eval("(def (type x) (syscall 9 x))");
-	eval("(def (sh cmd) (syscall 10 cmd))");
+	// define some basic functions
+	eval("(load \"/usr/local/lib/wulf/runtime.wl\")");
 
-
-
-	// define some basic +1 and -1 operations
-	eval("(def (inc a) (+ a 1))");
-	eval("(def (dec a) (- a 1))");
-
-	eval("(def t 't)");
-	// setup the check functions
-	eval("(def (nil? x) (= x nil))");
-	eval("(def (true? x) (not (= x nil)))");
-	eval("(def (zero? x) (= x 0))");
-
-	eval("(def (ident? n) (= (type n) :ident))");
-	eval("(def (list? n) (= (type n) :list))");
-	eval("(def (string? n) (= (type n) :string))");
-	eval("(def (procedure? n) (= (type n) :procedure))");
-	eval("(def (keyword? n) (= (type n) :keyword))");
-
-	eval("(def (str v) (syscall 31 v))");
-	eval("(def (string-length s) (syscall 27 s))");
-	eval("(def (string-concat s1 s2) (syscall 30 (list s1 s2)))");
-	eval("(def (string v) (string-concat "" v))");
-
-
-	eval("(def (car l) (syscall 19 l))");
-	eval("(def (cdr l) (syscall 20 l))");
 
 	// this bit of monsterous code generates all the car and cdr combinations
 	// anyone would ever reasonably need

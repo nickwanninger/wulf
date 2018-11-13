@@ -24,13 +24,13 @@ CSRCFILES := $(filter %.c,$(CODEFILES))
 COBJFILES := $(subst $(SRCDIR),$(OBJDIR)/c,$(CSRCFILES:%.c=%.o))
 
 
-.PHONY: all clean gen
+.PHONY: all clean gen lib
 
 # by default, compile the program with all threads :>
 default:
 	@$(MAKE) -j $(shell getconf _NPROCESSORS_ONLN) all
 
-all: $(OBJDIR) $(exe)
+all: lib $(OBJDIR) $(exe)
 
 $(OBJDIR):
 	@mkdir -p $@
@@ -63,3 +63,9 @@ gen: src/lex.yy.cc
 src/lex.yy.cc: src/wulf.l
 	@printf " FLEX\t$<\n"
 	@flex -o $@ $<
+
+
+
+lib: runtime.wl
+	@mkdir -p /usr/local/lib/wulf
+	@cp runtime.wl /usr/local/lib/wulf/
