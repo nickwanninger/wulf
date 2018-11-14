@@ -62,7 +62,8 @@
 (def (prins :rest args)
   (do
     (each args (fn a (do (puts a) (puts " "))))
-    (puts "\n")))
+    (puts "\n")
+    nil))
 
 (def (list :rest l) l)
 

@@ -23,6 +23,7 @@
 #include <locale>
 #include <iostream>
 #include <math.h>
+#include <syscall.hh>
 
 using namespace value;
 
@@ -126,7 +127,7 @@ std::string Object::to_string(bool human) {
 #define ifcall(method) if (!strcmp(first->string, #method))
 
 
-void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
+void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 	// std::cout << "compile " <<  to_string() << "\n";
 	switch (type) {
 
@@ -150,7 +151,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						value::Object name = *self[1];
 						value::Object val = *self[2];
 						if (name.type != value::ident) throw "name argument for set! must be an identifier literal";
-						val.compile(machine, bc);
+						val.compile(machine, sc, bc);
 						vm::Instruction inst(OP_STORE_LOCAL);
 						inst.string = name.string;
 						bc->push(inst);
@@ -183,7 +184,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 
 						if (name->type == value::ident) {
 							auto *val = last->last->first;
-							val->compile(machine, bc);
+							val->compile(machine, sc, bc);
 							auto store = vm::Instruction(OP_STORE_LOCAL);
 							store.string = name->string;
 							bc->push(store);
@@ -201,7 +202,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						inst.whole = length()-1;
 
 						for (int i = 1; i < length(); i++) {
-							(*this)[i]->compile(machine, bc);
+							(*this)[i]->compile(machine, sc, bc);
 						}
 
 						bc->push(inst);
@@ -212,7 +213,61 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 					// check for quote
 					ifcall(quote) {
 						if (last->first == NULL) throw "call to quote must have one argument";
-						last->first->compile_quote(machine, bc);
+						vm::Instruction inst(OP_PUSH_RAW);
+						inst.opcode = OP_PUSH_RAW;
+						inst.object = last->first;
+						bc->push(inst);
+						return;
+					}
+
+					ifcall(quasiquote) {
+						last->first->compile_quasiquote(machine, sc, bc);
+						return;
+					}
+
+					ifcall(unquote) {
+						throw "unquote cannot be used outside of a quasi-quote (backtick)";
+					}
+					ifcall(unquote-splicing) {
+						throw "unquote-splicing cannot be used outside of a quasi-quote (backtick)";
+					}
+
+					ifcall(defmacro) {
+						value::Object self = *this;
+						int len = length();
+
+						if (len != 3)
+							throw "macro definition requires 2 arguments (args and body)";
+
+						auto* arg = operator[](1);
+						auto* body = operator[](2);
+
+						if (arg->type != value::list)
+							throw "macro definition requires a list as the second argument. ex: (name ...)";
+
+						if (arg->length() == 0)
+							throw "macro definition must have a name";
+
+						auto* name = arg->operator[](0);
+						if (name->type != value::ident)
+							throw "macro definition requires an identifier as a name";
+
+						macro::Expansion mac;
+						// get the name from the name argument
+						mac.name = name->to_string();
+						// because the last in the arg list could be NULL, (no args)
+						// we have to conditionally parse the arguments
+						arg = arg->last;
+						if (arg != NULL) {
+							mac.args = *value::parse_fn_args(*arg);
+						} else {
+							mac.args = std::vector<Argument>();
+						}
+
+
+						mac.body = *body;
+						machine->macros[mac.name] = mac;
+
 						return;
 					}
 
@@ -225,53 +280,12 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						proc->type = value::procedure;
 						proc->code = new vm::Bytecode();
 
-						proc->args = new std::vector<Argument>();
+						proc->args = value::parse_fn_args(*arglist);
 
-						if (arglist->type == value::list) {
-
-
-
-							auto args = *arglist;
-							int len = arglist->length();
-							for (int i = 0; i < len; i++) {
-								auto arg = *args[i];
-								if (arg.type == value::keyword) {
-
-									if (i > len-1) throw "keyword argument is missing it's ident argument";
-									if (!strcmp(arg.string, ":rest")) {
-										arg = *args[++i];
-										if (arg.type != value::ident) throw ":rest argument modifier requires a following ident as a name";
-										Argument a;
-										a.type = value::rest;
-										a.name = strdup(arg.string);
-										proc->args->push_back(a);
-										if (i < len-1) {
-											throw ":rest argument must be the last argument";
-										}
-									} else throw "unknown keyword used in argument list";
-
-								} else if (arg.type == value::ident) {
-									Argument a;
-									a.name = strdup(arg.string);
-									proc->args->push_back(a);
-								} else throw "Syntax Error: argument list in function must be idents or keywords";
-							}
+						auto expr = operator[](2);
 
 
-						} else if (arglist->type == value::ident) {
-							Argument a;
-							a.name = arglist->string;
-							a.type = value::plain;
-							proc->args->push_back(a);
-						} else {
-							throw "syntax error in fn construction. arguments must be a single ident or a list of idents";
-							return;
-						}
-
-						auto expr = (*this)[2];
-
-
-						expr->compile(machine, proc->code);
+						expr->compile(machine, sc, proc->code);
 						proc->code->push(OP_RETURN);
 						proc->code->lambda = this;
 
@@ -287,7 +301,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 							in.number = 0;
 							bc->push(in);
 						} else {
-							last->first->compile(machine, bc);
+							last->first->compile(machine, sc, bc);
 						}
 						bc->push(OP_EXIT);
 						return;
@@ -296,7 +310,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 					ifcall(do) {
 						auto len = length();
 						for (int i = 1; i < len; i++) {
-							(*this)[i]->compile(machine, bc);
+							(*this)[i]->compile(machine, sc, bc);
 							if (i < len-1) bc->push(OP_SKIP);
 						}
 						return;
@@ -305,7 +319,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 
 					ifcall(intern) {
 						if (last->first == NULL) throw "call to intern requires an argument";
-						last->first->compile(machine, bc);
+						last->first->compile(machine, sc, bc);
 						bc->push(OP_INTERN);
 						return;
 					}
@@ -319,7 +333,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						if (len < 3) throw "call to if requires at least a truthy value";
 						if (len < 4) append(value::Object()); // if there isn't an else value, make it a nil
 
-						self[1]->compile(machine, bc);
+						self[1]->compile(machine, sc, bc);
 						// push a branch onto the bytecode stack and keep a reference to it.
 						// we'll wanna update this branch instruction's offset to the location
 						// of the false code.
@@ -328,7 +342,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 						vm::Instruction branch(OP_JUMP_FALSE);
 						long long bri = bc->instructions.size();
 						bc->push(OP_NOP);
-						self[2]->compile(machine, bc);
+						self[2]->compile(machine, sc, bc);
 
 						// we need to add unconditional branches to the joining block
 						long long theni = bc->instructions.size();
@@ -337,7 +351,7 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 
 						branch.whole = bc->instructions.size();
 						bc->instructions[bri] = branch;
-						self[3]->compile(machine, bc);
+						self[3]->compile(machine, sc, bc);
 						bc->push(OP_NOP);
 						bc->instructions[theni].whole = bc->instructions.size() - 1;;
 
@@ -345,23 +359,32 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 					}
 				}
 
+				const char* callname = first->to_string().c_str();
+
+				// check if there is a macro for this function call
+				if (machine->macros.count(first->to_string())) {
+					// construct an argument list for the expansion
+					std::vector<value::Object> args;
+					int len = length();
+					for (int i = 1; i < len; i++) {
+						args.push_back(*operator[](i));
+					}
+					auto macro = machine->macros[callname];
+					macro.expand(machine, args, sc).compile(machine, sc, bc);
+					return;
+				}
+
 				int arg_count = 0;
 				for (auto *arg = last; arg->type == value::list && arg->first != NULL; arg = arg->last) {
-					arg->first->compile(machine, bc);
+					arg->first->compile(machine, sc, bc);
 					arg_count++;
 				}
 
-				const char* callname = first->to_string().c_str();
-				// BIN_CALL("+", OP_ADD);
-				// BIN_CALL("-", OP_SUB);
-				// BIN_CALL("*", OP_MUL);
-				// BIN_CALL("/", OP_DIV);
-				// BIN_CALL("%", OP_MOD);
 				BIN_CALL("and", OP_AND);
 				BIN_CALL("or", OP_OR);
 				UNARY_CALL("not", OP_NOT);
 
-				first->compile(machine, bc);
+				first->compile(machine, sc, bc);
 				auto call = vm::Instruction(OP_CALL);
 				call.whole = arg_count;
 				bc->push(call);
@@ -399,55 +422,56 @@ void Object::compile(vm::Machine* machine, vm::Bytecode* bc) {
 
 
 
+bool Object::is_call(const char* name) {
+	if (type != value::list) return false;
+	if (first == NULL) return false;
+	if (first->type != value::ident) return false;
+	if (strcmp(first->string, name)) return false;
+	return true;
+}
 
-void Object::compile_quote(vm::Machine* m, vm::Bytecode* bc) {
-	// std::cout << "quote: " << to_string() << "\n";
-	if (type == value::ident) {
-		vm::Instruction inst(OP_PUSH_IDENT);
-		inst.string = string;
-		bc->push(inst);
+void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* bc) {
+
+	// quasi-quote handles lists specially cause it has to check if it is a call to
+	// unquote or unquote-splicing
+	if (type == value::list && first != NULL) {
+
+		if (is_call("unquote")) {
+			value::Object u = m->eval(*last->first, sc);
+			bc->push(OP_PUSH_RAW).object = new value::Object(u);
+			return;
+		}
+
+		// the list wasnt a special call, we should
+		// walk through the args and cons them together.
+		int len = length();
+		int consc = len;
+		for (int i = 0; i < len; i++) {
+			auto *elem = operator[](i);
+			if (elem->is_call("unquote-splicing")) {
+				value::Object u = m->eval(*elem->operator[](1), sc);
+				if (u.type == value::list) {
+					int ulen = u.length();
+					consc += ulen-1;
+					for (int j = 0; j < ulen; j++) {
+						bc->push(OP_PUSH_RAW).object = u.operator[](j);
+					}
+				} else {
+					bc->push(OP_PUSH_RAW).object = new value::Object(u);
+				}
+			} else {
+				// if this isn't *really* a special call,
+				// we'll just push it's raw form
+				elem->compile_quasiquote(m, sc, bc);
+			}
+		}
+		bc->push(OP_PUSH_NIL);
+		for (int i = 0; i < consc; i++) bc->push(OP_CONS);
 		return;
 	}
 
-	if (type == value::string) {
-		vm::Instruction inst(OP_PUSH_STR);
-		inst.string = string;
-		bc->push(inst);
-		return;
-	}
-
-	if (type == value::nil) {
-		vm::Instruction inst(OP_PUSH_NIL);
-		bc->push(inst);
-		return;
-	}
-
-	if (type == value::keyword) {
-		vm::Instruction inst(OP_PUSH_RAW);
-		inst.object = this;
-		bc->push(inst);
-		return;
-	}
-
-	if (type == value::number) {
-		vm::Instruction inst(OP_PUSH_NUM);
-		inst.number = number;
-		bc->push(inst);
-		return;
-	}
-	if (type == value::number) {
-		vm::Instruction inst(OP_PUSH_NUM);
-		inst.number = number;
-		bc->push(inst);
-		return;
-	}
-
-	if (type == value::list) {
-		vm::Instruction inst(OP_PUSH_RAW);
-		inst.object = this;
-		bc->push(inst);
-		return;
-	}
+	vm::Instruction & inst = bc->push(OP_PUSH_RAW);
+	inst.object = this;
 }
 
 bool Object::is_true() {
@@ -519,4 +543,70 @@ Object* value::newnumber(double n) {
 	v->number = n;
 	return v;
 }
+
+std::vector<Argument>* value::parse_fn_args(value::Object list) {
+	auto* args = new std::vector<Argument>();
+
+	if (list.type == value::list) {
+		int len = list.length();
+		for (int i = 0; i < len; i++) {
+			value::Object arg = *list[i];
+			if (arg.type == value::keyword) {
+				if (i > len - 1)
+					throw "keyword argument is missing it's ident argument";
+				if (!strcmp(arg.string, ":rest")) {
+					arg = *list[++i];
+					if (arg.type != value::ident) throw ":rest argument modifier requires a following ident as a name";
+					Argument a;
+					a.type = value::rest;
+					a.name = strdup(arg.string);
+					args->push_back(a);
+					if (i < len - 1) {
+						throw ":rest argument must be the last argument";
+					}
+				} else
+					throw "unknown keyword used in argument list";
+
+			} else if (arg.type == value::ident) {
+				Argument a;
+				a.name = strdup(arg.string);
+				args->push_back(a);
+			} else
+				throw "Syntax Error: argument list in function must be idents or keywords";
+		}
+	} else if (list.type == value::ident) {
+		Argument a;
+		a.name = list.string;
+		a.type = value::plain;
+		args->push_back(a);
+	} else
+			throw "invalid function argument syntax";
+	return args;
+}
+
+
+void value::argument_scope_expand(std::vector<Argument> args, std::vector<value::Object> objs, scope::Scope* sc) {
+	int i, passedc;
+	value::Argument argname;
+
+	passedc = objs.size();
+
+
+	for (i = 0; i < passedc; i++) {
+		if (i >= args.size()) throw "too many arguments passed";
+		argname = args[i];
+		if (argname.type == value::plain) {
+			sc->set(std::string(argname.name), objs[i]);
+		} else if (argname.type == value::rest) {
+			value::Object lst;
+			lst.type = value::list;
+			while (i < passedc)
+				lst.append(objs[i++]);
+			sc->set(std::string(argname.name), lst);
+		} else throw "invalid number of arguments passed";
+
+	}
+}
+
+
 

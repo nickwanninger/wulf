@@ -76,7 +76,7 @@ void State::eval(char* source) {
 
 		// attempt to compile the bytecode
 		try {
-			node->compile(machine, &bc);
+			node->compile(machine, scope, &bc);
 		} catch (const char* err) {
 			std::cerr << "Compilation Failed: " << err << "\n";
 			return;
@@ -116,8 +116,6 @@ void State::eval(char* source) {
 			}
 		}
 	}
-	delete parser;
-	return;
 }
 
 std::vector<Token> State::lex(char* source) {

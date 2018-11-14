@@ -95,8 +95,11 @@ namespace value {
 			Object(char*);
 			Object(const char*);
 			std::string to_string(bool human = false);
-			void compile(vm::Machine*, vm::Bytecode*);
-			void compile_quote(vm::Machine*, vm::Bytecode*);
+
+			// return if the object is a call to a function name (used in the compiler)
+			bool is_call(const char*);
+			void compile(vm::Machine*, scope::Scope*, vm::Bytecode*);
+			void compile_quasiquote(vm::Machine*, scope::Scope*, vm::Bytecode*);
 			void append(value::Object);
 			bool is_true();
 			size_t length();
@@ -109,6 +112,9 @@ namespace value {
 	Object* newstring(const char*);
 	Object* newnumber(double);
 
+
+	std::vector<Argument>* parse_fn_args(value::Object);
+	void argument_scope_expand(std::vector<Argument>, std::vector<value::Object>, scope::Scope*);
 }
 
 

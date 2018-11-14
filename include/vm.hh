@@ -7,6 +7,8 @@
 #include <opcode.hh>
 #include <state.hh>
 #include <stack>
+#include <map>
+#include <macro.hh>
 
 typedef value::Object stackval;
 
@@ -67,11 +69,13 @@ namespace vm {
 	class Machine {
 		private:
 		public:
+			std::map<std::string, macro::Expansion> macros;
 			bool debug = false;
 			Stack* stack;
 			State* state;
 			Machine();
 			void eval(Bytecode, scope::Scope*);
+			value::Object eval(value::Object, scope::Scope*);
 			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object);
 	};
 

@@ -166,6 +166,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_OR); break;
 		OP_STRING(OP_NOT); break;
 
+		OP_STRING(OP_CONS); break;
 		OP_STRING(OP_CALL) << "\t" << whole; break;
 		OP_STRING(OP_EXIT); break;
 		OP_STRING(OP_INTERN); break;
@@ -191,6 +192,18 @@ Machine::Machine() {
 	stack = new Stack();
 }
 
+
+// provide a quick wrapper for evaluating an object with some scope
+//   this is used internally for the macro expansion system
+value::Object vm::Machine::eval(value::Object obj, scope::Scope* sc) {
+	vm::Bytecode bc;
+
+	obj.compile(this, sc, &bc);
+
+	eval(bc, sc);
+
+	return stack->pop();
+}
 
 #define EVAL_DEBUG
 
@@ -268,6 +281,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						pc++;
 						break;
 					}
+
 
 			case OP_SKIP:
 					stack->pop();
@@ -372,24 +386,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					auto *newscope = callable.defining_scope->spawn_child();
 					newscope->returning_scope = sc;
 
-
-					for (i = 0; i < passedc; i++) {
-						if (i >= argnames.size()) throw "too many arguments passed to function";
-						value::Argument argname = argnames[i];
-
-						if (argname.type == value::plain) {
-							newscope->set(std::string(argname.name), arglist[i]);
-						} else if (argname.type == value::rest) {
-							value::Object lst;
-							lst.type = value::list;
-							while (i < passedc) {
-								lst.append(arglist[i++]);
-							}
-							newscope->set(std::string(argname.name), lst);
-						} else throw "invalid number of arguments passed to function call";
-					}
-
-					if (i < callable.args->size()) throw "invalid number of arguments passed to function call";
+					value::argument_scope_expand(argnames, arglist, newscope);
 
 
 					sc = newscope;
@@ -423,6 +420,25 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					pc++;
 				}; break;
 
+
+			case OP_CONS: {
+						auto lst = stack->pop();
+						auto val = stack->pop();
+
+						if (lst.type != value::list) {
+							if (lst.type == value::nil) {
+								lst.type = value::list;
+							} else {
+								throw "attempt to cons to non-list";
+							}
+						}
+						auto newlist = value::Object();
+						newlist.type = value::list;
+						newlist.first = new value::Object(val);
+						newlist.last = new value::Object(lst);
+						stack->push(newlist);
+						pc++;
+					}; break;
 
 			case OP_SYSCALL: {
 					auto arg2 = stack->pop();
@@ -532,7 +548,7 @@ void vm::Machine::handle_syscall(
 
 		case SYS_EVAL: {
 			Bytecode evalbc;
-			arg.compile(this, &evalbc);
+			arg.compile(this, sc, &evalbc);
 			evalbc.push(OP_BC_RETURN);
 			bc_stk.push({evalbc, 0});
 		}; break;
