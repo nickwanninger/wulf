@@ -24,11 +24,18 @@
 (def (exit) (syscall 1 0))
 (def (die n) (syscall 1 n))
 
+(def (macroexpand exp) (syscall 3 exp))
+
 (def (+ :rest a) (syscall 11 a))
+
 (def (- :rest a) (syscall 12 a))
+
 (def (* :rest a) (syscall 13 a))
+
 (def (/ :rest a) (syscall 14 a))
+
 (def (abs x) (if (> x 0) x (- 0 x)))
+
 (def (pow b n)
   (if (= n 0)
     1
@@ -53,6 +60,14 @@
 (def (rand-range l u)
   (+ (* (rand) (- u l)) l))
 
+
+(def (let-helper/names args) (map car args))
+(def (let-helper/vals args) (map (fn x (first (rest x))) args))
+
+(defmacro (let vals-n-names :rest body)
+  `((fn ,(let-helper/names vals-n-names)
+      (do ,@body))
+    ,@(let-helper/vals vals-n-names)))
 
 
 
@@ -168,3 +183,14 @@
   (if (zero? n)
     nil
     (cons val (repeat val (dec n)))))
+
+
+
+
+;; define the condition syntax.
+(defmacro (cond :rest cs)
+  (if (nil? (first cs)) :no-case
+    `(if ,(first (first cs)) (do ,@(rest (first cs)))
+       (cond ,@(rest cs)))))
+
+

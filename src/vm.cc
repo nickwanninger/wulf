@@ -1,3 +1,21 @@
+/*
+ * A compiler for the wulf language
+ * Copyright (C) 2018  Nick Wanninger
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <wulf.hh>
 #include <vm.hh>
 #include <iostream>
@@ -551,6 +569,27 @@ void vm::Machine::handle_syscall(
 			arg.compile(this, sc, &evalbc);
 			evalbc.push(OP_BC_RETURN);
 			bc_stk.push({evalbc, 0});
+		}; break;
+
+		case SYS_MACROEXPAND: {
+				if (arg.type != value::list) throw "unable to macroexpand a non-list";
+				if (arg.length() == 0) throw "unble to macroexpand empty list";
+				if (arg.first->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
+				const char* callname = arg.first->to_string().c_str();
+
+				if (macros.count(arg.first->to_string())) {
+					// construct an argument list for the expansion
+					std::vector<value::Object> args;
+					int len = arg.length();
+					for (int i = 1; i < len; i++) {
+						args.push_back(*arg[i]);
+					}
+					auto macro = macros[callname];
+					// expand and compile the macro
+					auto expansion = macro.expand(this, args, sc);
+					stack->push(expansion);
+					return;
+				} else throw "unable to find macro to expand";
 		}; break;
 
 		case SYS_PRINT: {

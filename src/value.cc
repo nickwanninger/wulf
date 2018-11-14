@@ -370,7 +370,9 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						args.push_back(*operator[](i));
 					}
 					auto macro = machine->macros[callname];
-					macro.expand(machine, args, sc).compile(machine, sc, bc);
+					// expand and compile the macro
+					auto expansion = macro.expand(machine, args, sc);
+					expansion.compile(machine, sc, bc);
 					return;
 				}
 

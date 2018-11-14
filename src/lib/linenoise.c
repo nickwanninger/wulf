@@ -833,6 +833,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             return -1;
         case BACKSPACE:   /* backspace */
         case 8:     /* ctrl-h */
+						if (l.buf[l.pos-1] == '(' && l.buf[l.pos] == ')') linenoiseEditDelete(&l);
             linenoiseEditBackspace(&l);
             break;
         case CTRL_D:     /* ctrl-d, remove char at right of cursor, or if the
@@ -921,9 +922,19 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                 }
             }
             break;
-        default:
-            if (linenoiseEditInsert(&l,c)) return -1;
-            break;
+        default: {
+						if (c == ')' && buf[l.pos] == ')') {
+							linenoiseEditMoveRight(&l);
+						} else {
+							if (c == '(' && buf[l.pos-1] == ')') linenoiseEditInsert(&l, ' ');
+							int res = linenoiseEditInsert(&l, c);
+							if (c == '(') {
+								linenoiseEditInsert(&l, ')');
+								linenoiseEditMoveLeft(&l);
+							}
+							if (res) return -1;
+						}
+					}; break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */
             buf[0] = '\0';
             l.pos = l.len = 0;
