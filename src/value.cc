@@ -385,10 +385,25 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				BIN_CALL("or", OP_OR);
 				UNARY_CALL("not", OP_NOT);
 
-				first->compile(machine, sc, bc);
+				// here's a little (not perfect) optimization.
+				// it looks in the current scope to see if it can find a function definition
+				// and if it does, it won't bother looking up the function at runtime
+				try {
+
+					value::Object calling = sc->root->find(first->to_string());
+					if (calling.type == value::procedure) {
+						vm::Instruction in = OP_PUSH_RAW;
+						in.object = new value::Object(calling);
+						bc->push(in);
+					}
+				} catch (std::string msg) {
+					// wasn't found, ignore it and push the first argumen to the stack
+					first->compile(machine, sc, bc);
+				}
 				auto call = vm::Instruction(OP_CALL);
 				call.whole = arg_count;
 				bc->push(call);
+				return;
 			} break;
 
 

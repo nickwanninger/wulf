@@ -122,7 +122,6 @@ stackval Stack::pop() {
 	long shrink_size = stacksize / STACK_GROWTH_RATIO;
 	if (index + STACK_BREATHING_ROOM <= shrink_size && shrink_size >= STACK_BASE_SIZE) {
 		resize(stacksize / STACK_GROWTH_RATIO);
-		GC_gcollect();
 	}
 	return val;
 }
@@ -235,7 +234,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 	std::stack<bytecode_stack_obj_t> bc_stk;
 
-	bc_stk.push({bc, 0});
+	bc_stk.push({bc, 0, 0});
 
 	while (bc_stk.top().pc < bc_stk.top().bc.instructions.size()) {
 		long long & pc = bc_stk.top().pc;
@@ -384,7 +383,11 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_CALL: {
 					int i;
+					bytecode_stack_obj_t new_call;
 					auto callable = stack->pop();
+					// where the "frame" starts for this call. this will be used to jump back to and push
+					// the return value when returning
+					new_call.sp = stack->index;
 					if (callable.type != value::procedure) {
 						std::cout << "CALLABLE: " << callable.to_string() << "\n";
 						throw "attempt to call non-procedure";
@@ -403,19 +406,16 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 					auto *newscope = callable.defining_scope->spawn_child();
 					newscope->returning_scope = sc;
-
+					// expand the arguments into the scope
 					value::argument_scope_expand(argnames, arglist, newscope);
-
-
 					sc = newscope;
-
-					bytecode_stack_obj_t new_call;
 					vm::Bytecode lambda_bc = *(callable.code);
 					new_call.bc = lambda_bc;
 					new_call.pc = 0;
 					bc_stk.push(new_call);
 					pc++;
 				}; break;
+
 
 			case OP_RETURN: {
 					auto *parent = sc->returning_scope;
@@ -424,9 +424,15 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					} else {
 						throw "no returning scope";
 					}
+					auto top = bc_stk.top();
+					auto val = stack->pop();
+					// stack->index = top.sp-1;
+					stack->push(val);
 					if (bc_stk.size() != 1)	bc_stk.pop();
 					pc++;
 				}; break;
+
+
 			// BC_RETURN only pops the bytecode.
 			//   this is used at the end of an eval
 			case OP_BC_RETURN: {
@@ -568,7 +574,7 @@ void vm::Machine::handle_syscall(
 			Bytecode evalbc;
 			arg.compile(this, sc, &evalbc);
 			evalbc.push(OP_BC_RETURN);
-			bc_stk.push({evalbc, 0});
+			bc_stk.push({evalbc, 0, stack->index});
 		}; break;
 
 		case SYS_MACROEXPAND: {

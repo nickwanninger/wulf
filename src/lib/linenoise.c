@@ -177,6 +177,8 @@ static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
 
+
+
 /* Debugging macro. */
 #if 0
 FILE *lndebug_fp = NULL;
@@ -543,7 +545,7 @@ static void refreshSingleLine(struct linenoiseState *l) {
 		char c = buf[i];
 
 		if (c == '(') pdepth++;
-		snprintf(seq, seql, "\x1b[38;2;%sm%c\x1b[0m", colors[pdepth & ((sizeof(colors) / sizeof(char*))-1)], c);
+		snprintf(seq, seql, "\x1b[%dm%c\x1b[0m", 31 + pdepth % 6, c);
 		if (c == ')') pdepth--;
 		abAppend(&ab, seq, strlen(seq));
 	}

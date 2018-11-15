@@ -82,6 +82,7 @@ namespace vm {
 	typedef struct {
 		vm::Bytecode bc;
 		long long pc;
+		long long sp;
 	} bytecode_stack_obj_t;
 
 	class Machine {
