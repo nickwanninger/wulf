@@ -532,12 +532,19 @@ static void refreshSingleLine(struct linenoiseState *l) {
 	/* Write the prompt and the current buffer content */
 	abAppend(&ab,l->prompt,strlen(l->prompt));
 
+	char *colors[] = {"139;233;253",
+										"80;250;123",
+										"255;184;108",
+										"255;121;198",
+										"189;147;249",
+										"255;85;85",
+										"241;250;140"};
 	int pdepth = 0;
 	for (int i = 0; i < len; i++) {
 		char c = buf[i];
 
 		if (c == '(') pdepth++;
-		snprintf(seq, seql, "\x1b[%dm%c\x1b[0m", 31 + (pdepth % 5), c);
+		snprintf(seq, seql, "\x1b[38;2;%sm%c\x1b[0m", colors[pdepth & ((sizeof(colors) / sizeof(char*))-1)], c);
 		if (c == ')') pdepth--;
 		abAppend(&ab, seq, strlen(seq));
 	}
