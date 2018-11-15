@@ -272,6 +272,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 
 					ifcall(fn) {
+
 						if (last->first == NULL) throw "'fn' call requires more arguments";
 						if (length() == 2) throw "'fn' call missing body";
 						auto *arglist = last->first;
@@ -283,11 +284,9 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						proc->args = value::parse_fn_args(*arglist);
 
 						auto expr = operator[](2);
-
-
 						expr->compile(machine, sc, proc->code);
 						proc->code->push(OP_RETURN);
-						proc->code->lambda = this;
+						proc->code->lambda = new value::Object(*this);
 
 						vm::Instruction inst(OP_PUSH_RAW);
 						inst.object = proc;

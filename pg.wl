@@ -21,9 +21,6 @@
     n
     (+ (fib (- n 1)) (fib (- n 2)))))
 
-
-
-
 (def (sum f a b step)
   (if (> a b)
     0
@@ -49,12 +46,3 @@
           b
           (fn x (+ x dx)))
      dx))
-
-(defmacro (when c v)
-  `(if ,c ,v))
-
-
-(print (map (fn x
-              (cond ((> x 0) (list 'gt x))
-                    ((< x 0) (list 'lt x))))
-            (range -5 6)))

@@ -49,17 +49,39 @@
 (def (>= a b) (not (< a b)))
 (def (<= a b) (not (> a b)))
 
+;; -------------------------------------
+
+(def (nil? x) (= x nil))
+(def (true? x) (not (= x nil)))
+(def (zero? x) (= x 0))
+
+(def (ident? n) (= (type n) :ident))
+(def (number? n) (= (type n) :number))
+(def (list? n) (= (type n) :list))
+(def (string? n) (= (type n) :string))
+(def (procedure? n) (= (type n) :procedure))
+(def (keyword? n) (= (type n) :keyword))
+
+
+;; -------------------------------------
+
 (def (cons a b) (syscall 24 (list a b)))
 (def (eval stmt) (syscall 2 stmt))
 (def (apply f a) (eval (cons f a)))
 
-;; return a random number between zero and one
-(def (rand) (syscall 22 nil))
+;; -------------------------------------
 
-;; return a random number between l and u
-(def (rand-range l u)
-  (+ (* (rand) (- u l)) l))
+(def (car l) (syscall 19 l))
+(def (cdr l) (syscall 20 l))
 
+(def (first l) (syscall 19 l))
+(def (rest l) (syscall 20 l))
+
+;; -------------------------------------
+
+(def (id x) x)
+
+;; -------------------------------------
 
 (def (let-helper/names args) (map car args))
 (def (let-helper/vals args) (map (fn x (first (rest x))) args))
@@ -69,9 +91,33 @@
       (do ,@body))
     ,@(let-helper/vals vals-n-names)))
 
+;; -------------------------------------
+
+(def (every f lst)
+  (if (not (f (car lst)))
+    nil
+    (every f (cdr lst))))
 
 
+(def (list-of-lists? x) (every list? x))
+;; define the condition syntax.
+(defmacro (cond :rest cs)
+  (if (nil? (first cs)) :no-case
+    `(if ,(first (first cs)) (do ,@(rest (first cs)))
+       (cond ,@(rest cs)))))
 
+
+;; -------------------------------------
+
+
+;; add the scheme define syntax
+(defmacro (define :rest args) `(def ,@args))
+(defmacro (lambda :rest args) `(fn ,@args))
+(defmacro (fn* args :rest body)
+  `(fn ,args (do ,@body)))
+
+
+;; put mappings to printing systemcalls
 (def (puts m) (syscall 7 m))
 (def (print x) (do (puts x) (puts "\n")))
 (def (prins :rest args)
@@ -91,15 +137,6 @@
 ;; define the "truth" value
 (def t 't)
 
-(def (nil? x) (= x nil))
-(def (true? x) (not (= x nil)))
-(def (zero? x) (= x 0))
-
-(def (ident? n) (= (type n) :ident))
-(def (list? n) (= (type n) :list))
-(def (string? n) (= (type n) :string))
-(def (procedure? n) (= (type n) :procedure))
-(def (keyword? n) (= (type n) :keyword))
 
 
 ;; convert any object v to a string
@@ -108,15 +145,16 @@
 (def (string-concat s1 s2) (syscall 30 (list s1 s2)))
 
 
-(def (car l) (syscall 19 l))
-(def (cdr l) (syscall 20 l))
-
-(def (first l) (syscall 19 l))
-(def (rest l) (syscall 20 l))
 
 
 
 
+;; return a random number between zero and one
+(def (rand) (syscall 22 nil))
+
+;; return a random number between l and u
+(def (rand-range l u)
+  (+ (* (rand) (- u l)) l))
 
 ;; find the length of any list
 (def (len l)
@@ -185,12 +223,5 @@
     (cons val (repeat val (dec n)))))
 
 
-
-
-;; define the condition syntax.
-(defmacro (cond :rest cs)
-  (if (nil? (first cs)) :no-case
-    `(if ,(first (first cs)) (do ,@(rest (first cs)))
-       (cond ,@(rest cs)))))
 
 
