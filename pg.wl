@@ -46,3 +46,13 @@
           b
           (fn x (+ x dx)))
      dx))
+
+
+
+(def (conj-list l1 l2)
+  (cond ((nil? l2) l1)
+        ((nil? (cdr l2) (cons (car l2) l1))
+        (t (conj-list (cons (car l2) l1) (cdr l2))))))
+
+(def (conj target :rest things)
+  (conj-list target rest))

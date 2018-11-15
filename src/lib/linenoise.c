@@ -534,7 +534,6 @@ static void refreshSingleLine(struct linenoiseState *l) {
 
 	char *colors[] = {"139;233;253",
 										"80;250;123",
-										"255;184;108",
 										"255;121;198",
 										"189;147;249",
 										"255;85;85",
@@ -948,7 +947,14 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 								 if (c == ')' && buf[l.pos] == ')') {
 									 linenoiseEditMoveRight(&l);
 								 } else {
-									 if (c == '(' && buf[l.pos-1] == ')') linenoiseEditInsert(&l, ' ');
+									 if (c == '(' &&
+											 l.pos != 0 &&
+											 buf[l.pos-1] != '\'' &&
+											 buf[l.pos-1] != '`' &&
+											 buf[l.pos-1] != '@' &&
+											 buf[l.pos-1] != ',' &&
+											 buf[l.pos-1] != '(' &&
+											 buf[l.pos-1] != ' ') linenoiseEditInsert(&l, ' ');
 									 int res = linenoiseEditInsert(&l, c);
 									 if (c == '(') {
 										 linenoiseEditInsert(&l, ')');
@@ -956,6 +962,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 									 }
 									 if (res) return -1;
 								 }
+							 	refreshLine(&l);
 							 }; break;
 			case CTRL_U: /* Ctrl+u, delete the whole line. */
 							 buf[0] = '\0';
