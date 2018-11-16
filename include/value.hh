@@ -94,6 +94,9 @@ namespace value {
 			Object(double);
 			Object(char*);
 			Object(const char*);
+
+			void* operator new(size_t);
+			void operator delete(void*);
 			std::string to_string(bool human = false);
 
 			// return if the object is a call to a function name (used in the compiler)

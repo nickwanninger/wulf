@@ -24,6 +24,7 @@
 #include <iostream>
 #include <math.h>
 #include <syscall.hh>
+#include <gc/gc_cpp.h>
 
 using namespace value;
 
@@ -40,7 +41,6 @@ Object::Object(double val) {
 	Object();
 }
 
-
 Object::Object(char* str) {
 	string = str;
 }
@@ -48,7 +48,23 @@ Object::Object(const char* str) {
 	string = strdup(str);
 }
 
-Object::~Object() {}
+Object::~Object() {
+	// delete this;
+	// std::cout << "Delete Object " << to_string() << "\n";
+}
+
+void* Object::operator new(size_t size) {
+	// std::cout << "Object::new\n";
+	return GC_MALLOC(size);
+}
+
+void Object::operator delete(void* ptr) {
+	// std::cout << "Object::delete\n";
+	return GC_FREE(ptr);
+}
+
+
+
 
 
 std::string Object::to_string(bool human) {

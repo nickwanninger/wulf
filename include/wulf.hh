@@ -50,6 +50,9 @@ char* read_file_contents(char*);
 char* read_file_contents(FILE* f);
 std::string unescape(const std::string& s);
 
+char* ccharcopy(const char*);
+
+
 #define TOK_EOF           0
 #define TOK_UNKNOWN       1
 #define TOK_NUMBER        2

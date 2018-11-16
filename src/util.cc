@@ -21,11 +21,6 @@
 
 char* read_file_contents(char* filename) {
 	FILE* f = fopen(filename, "r");
-	return read_file_contents(f);
-}
-
-
-char* read_file_contents(FILE* f) {
 	if (f == NULL) {
 		throw "file not found";
 	}
@@ -39,6 +34,8 @@ char* read_file_contents(FILE* f) {
 	fread(buf, sizeof(char), size, f);
 	return buf;
 }
+
+
 
 
 std::string unescape(const std::string& s) {
@@ -68,3 +65,12 @@ std::string unescape(const std::string& s) {
 }
 
 
+
+
+char* ccharcopy(const char* cc) {
+	auto len = strlen(cc);
+	char *buf = new char[len+1];
+	for (int i = 0; i < len; i++) buf[i] = cc[i];
+	buf[len] = 0;
+	return buf;
+}

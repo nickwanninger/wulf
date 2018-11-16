@@ -60,7 +60,7 @@ State::State() {
 
 
 void State::eval(const char* source) {
-	eval((char*)source);
+	eval(ccharcopy(source));
 }
 void State::eval(char* source) {
 	// lex the tokens from the source
@@ -150,7 +150,7 @@ std::string get_file_ext(const std::string& s) {
 }
 
 void State::eval_file(char* source) {
-	std::string name = source;
+	std::string name(strdup(source));
 
 	std::string ext = get_file_ext(name);
 
@@ -159,7 +159,7 @@ void State::eval_file(char* source) {
 	}
 
 	try {
-		char* contents = read_file_contents((char*)name.c_str());
+		char* contents = read_file_contents(ccharcopy(name.c_str()));
 		eval(contents);
 	} catch (const char* err) {
 		throw err;

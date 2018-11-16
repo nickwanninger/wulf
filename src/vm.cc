@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/mman.h>
-#include <gc/gc.h>
+#include <gc/gc_cpp.h>
 #include <stack>
 #include <syscall.hh>
 using namespace vm;
@@ -149,7 +149,7 @@ Instruction::Instruction(opcode_t op, char* str) {
 
 Instruction::Instruction(opcode_t op, const char* str) {
 	opcode = op;
-	string = (char*)str;
+	string = ccharcopy(str);
 }
 
 
@@ -236,8 +236,10 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 	bc_stk.push({bc, 0, 0});
 
+
 	while (bc_stk.top().pc < bc_stk.top().bc.instructions.size()) {
 		long long & pc = bc_stk.top().pc;
+
 
 		vm::Instruction & in = bc_stk.top().bc.instructions[pc];
 		if (debug) {
@@ -606,7 +608,7 @@ void vm::Machine::handle_syscall(
 			if (arg.type != value::string) throw "syscall load requires a string filepath";
 			bool repls = state->repl;
 			state->repl = false;
-			char* path = (char*)arg.to_string(true).c_str();
+			char* path = ccharcopy(arg.to_string(true).c_str());
 			state->eval_file(path);
 			state->repl = repls;
 		}; break;
@@ -615,7 +617,6 @@ void vm::Machine::handle_syscall(
 			auto val = arg;
 			auto type_kw = value::Object(value::keyword);
 			type_kw.type = value::keyword;
-			type_kw.string = (char*)":unknown";
 			using namespace value;
 			#define TYPEOFVALUE(x) if (val.type == x) {type_kw.string = strdup(":"#x);}
 			TYPEOFVALUE(list);

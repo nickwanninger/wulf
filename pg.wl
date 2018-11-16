@@ -48,4 +48,48 @@
      dx))
 
 
-(print (fib 25))
+(def (second x) (car (cdr x)))
+
+(def (ffirst x) (first (first x)))
+
+;;; define the fixed-point y-combinator
+(def Y                ; (Y f) = (g g) where
+  (fn (f)             ;         (g g) = (f  (lambda a (apply (g g) a)))
+    ((fn (g) (g g))   ; (Y f) ==        (f  (lambda a (apply (Y f) a)))
+     (fn (g)
+       (f (fn (:rest a) (apply (g g) a)))))))
+
+(def fib1
+  (Y (fn (f)
+       (fn (x)
+         (if (< x 2)
+             x
+             (+ (f (- x 1)) (f (- x 2))))))))
+
+; tail-recursive Fibonacci
+(def Yfib
+  (fn (x)
+    ((Y (fn (f)
+      (fn (x a b)
+        (if (< x 1)
+          a
+          (f (- x 1) b (+ a b))))))
+     x 0 1)))
+
+(def (fib-iter a b count)
+  (if (= count 0)
+    b
+    (fib-iter (+ a b) a (- count 1))))
+
+; (def (fib n) (fib-iter 1 0 n))
+
+
+(def (thing n)
+  (do
+    (print n)
+    (thing (inc n))))
+
+
+(thing 0)
+
+

@@ -24,7 +24,7 @@
 #include <scope.hh>
 #include <thread>
 #include <value.hh>
-#include <gc/gc.h>
+#include <gc/gc_cpp.h>
 #include <vm.hh>
 #include <value.hh>
 #include <parser.hh>
@@ -44,9 +44,12 @@
 int main(int argc, char** argv) {
 	GC_init();
 
-	srand((unsigned int)time(NULL));
-	try {
+	// GC_enable_incremental();
 
+	// setup the random number generator
+	srand((unsigned int)time(NULL));
+
+	try {
 		bool interactive = false;
 
 		auto *state = new State();
@@ -98,12 +101,23 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
+static void xfinalizer(void *obj, void *x) {
+	std::cout << "obj\n";
+}
 
+void* wulf_malloc(size_t size) {
+	void* ptr = GC_MALLOC(size);
+  GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
+	return ptr;
+}
+
+#define alloc_fn GC_MALLOC
+#define free_fn GC_FREE
 void* operator new(size_t size) {
-	return GC_MALLOC(size);
+	return alloc_fn(size);
 }
 void* operator new[](size_t size) {
-	return GC_MALLOC(size);
+	return alloc_fn(size);
 }
 
 #ifdef __GLIBC__
@@ -112,9 +126,9 @@ void* operator new[](size_t size) {
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
-	// GC_free(ptr);
+	free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
-	// GC_free(ptr);
+	free_fn(ptr);
 }
 
