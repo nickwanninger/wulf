@@ -31,7 +31,7 @@ namespace scope {
 	class Bucket {
 		public:
 			std::string key;
-			value::Object val;
+			value::Object *val;
 			Bucket* next;
 	};
 
@@ -43,7 +43,7 @@ namespace scope {
 			Valmap();
 			Valmap(long);
 			bool contains(const std::string&);
-			value::Object& operator[](const std::string);
+			value::Object *operator[](const std::string);
 			Bucket* getbucket(const std::string);
 	};
 
@@ -69,12 +69,12 @@ namespace scope {
 			 * spawn a child for the scope
 			 */
 			Scope* spawn_child();
-			value::Object find(std::string);
+			value::Object *find(std::string);
 			Bucket* find_bucket(std::string);
 
 			std::string to_string();
-			void set(std::string, value::Object);
-			void set(const char*, value::Object);
+			void set(std::string, value::Object*);
+			void set(const char*, value::Object*);
 			void set(const char*, double);
 			void install_default_bindings();
 	};

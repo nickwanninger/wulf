@@ -50,6 +50,8 @@ public:
 	void eval(const char*);
 	void eval_file(char*);
 
+	value::Object *bind(const char*, value::bind_func_t);
+
 	/*
 	 * start the repl for the user to insert wulf code
 	 */

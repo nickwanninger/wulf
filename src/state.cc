@@ -23,15 +23,61 @@
 #include <fstream>
 #include <parser.hh>
 #include <linenoise.h>
+#include <autonum.hh>
+#include <stdlib.h>
+#include <dlfcn.h>
 
 #define BIT(num, n) (((num) >> (n)) & 1)
 #define BITAD(b) ((b) == 0 ? 'a' : 'd')
+
+
+
+value::Object* proc_binding_binding(int argc, value::Object **argv, State* state) {
+	if (argc != 2) {
+		return new value::Object("must have two arguments");
+	}
+
+	void *handle;
+	value::bind_func_t func;
+
+	if (argv[0]->type != value::string)
+		return value::newstring("first argument is not a string");
+	if (argv[1]->type != value::string)
+		return value::newstring("second argument is not a string");
+
+	handle = dlopen(argv[0]->string, RTLD_LAZY);
+
+
+	const char *err = dlerror();
+	if (err)
+		std::cerr << err << "\n";
+
+	if (!handle) throw "dlopen failed to find a shared object file";
+
+	func = (value::bind_func_t)dlsym(handle, argv[1]->string);
+	if (!func)
+		throw "not found";
+
+	auto *proc = new value::Object(value::procedure);
+	proc->code = new vm::Bytecode();
+	proc->code->type = vm::bc_binding;
+	proc->code->binding = func;
+	proc->code->name = argv[1]->string;
+
+
+
+	return proc;
+}
+
 
 State::State() {
 	scope = new scope::Scope();
 	scope->install_default_bindings();
 	machine = new vm::Machine();
 	machine->state = this;
+
+
+	bind("proc-binding", proc_binding_binding);
 	// bootstrap the load procedure
 	eval("(def (load path) (syscall 8 path))");
 	// define some basic functions
@@ -122,18 +168,29 @@ void State::eval(char* source) {
 			return;
 		}
 		if (machine->stack->index > 0) {
-			auto top = machine->stack->pop();
+			auto *top = machine->stack->pop();
 			if (repl) {
 				std::ostringstream name;
 				name << "$";
 				name << repl_index;
 				scope->root->set(name.str(), top);
 				repl_index++;
-				if (top.type != value::nil)
-					std::cout << "\x1B[90m" << name.str() << ": " << KGRN << top.to_string() << RST << "\n";
+				if (top->type != value::nil)
+					std::cout << "\x1B[90m" << name.str() << ": " << KGRN << top->to_string() << RST << "\n";
 			}
 		}
 	}
+}
+
+
+value::Object *State::bind(const char *name, value::bind_func_t binding) {
+	value::Object *proc = new value::Object(value::procedure);
+	proc->code = new vm::Bytecode();
+	proc->code->type = vm::bc_binding;
+	proc->code->name = name;
+	proc->code->binding = binding;
+	scope->set(name, proc);
+	return proc;
 }
 
 std::vector<Token> State::lex(char* source) {

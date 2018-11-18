@@ -2,3 +2,6 @@ wulf
 build
 src/lex.yy.cc
 wulf
+
+
+lib/stdbind.so

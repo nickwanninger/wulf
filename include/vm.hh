@@ -28,7 +28,7 @@
 #include <map>
 #include <macro.hh>
 
-typedef value::Object stackval;
+typedef value::Object* stackval;
 
 class State;
 namespace vm {
@@ -53,8 +53,16 @@ namespace vm {
 			std::string to_string();
 	};
 
+
+	enum BC_Type {
+		bc_normal,
+		bc_binding,
+	};
 	class Bytecode {
 		public:
+			BC_Type type = bc_normal;
+			const char* name;
+			value::bind_func_t binding;
 			std::vector<Instruction> instructions;
 			value::Object *lambda; // a pointer to the definition for stringification
 			Instruction & push(Instruction);
@@ -88,14 +96,16 @@ namespace vm {
 	class Machine {
 		private:
 		public:
+			value::Object* nilval;
+			value::Object* trueval;
 			std::map<std::string, macro::Expansion> macros;
 			bool debug = false;
 			Stack* stack;
 			State* state;
 			Machine();
 			void eval(Bytecode, scope::Scope*);
-			value::Object eval(value::Object, scope::Scope*);
-			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object);
+			value::Object *eval(value::Object, scope::Scope*);
+			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object*);
 	};
 
 }

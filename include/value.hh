@@ -19,16 +19,17 @@
 #ifndef __VALUE_HH
 #define __VALUE_HH
 
-#include <wulf.hh>
 #include <string>
 #include <vector>
 #include <sstream>
 #include <iostream>
 
+#define NSCLASS(ns, name) namespace ns { class name; }
 NSCLASS(scope, Scope);
 NSCLASS(value, Object); // forward define value
 NSCLASS(vm, Machine);
 NSCLASS(vm, Bytecode);
+class State;
 
 using stringlist = std::vector<std::string>;
 typedef std::vector<value::Object> valuelist;
@@ -103,11 +104,13 @@ namespace value {
 			bool is_call(const char*);
 			void compile(vm::Machine*, scope::Scope*, vm::Bytecode*);
 			void compile_quasiquote(vm::Machine*, scope::Scope*, vm::Bytecode*);
-			void append(value::Object);
+			void append(value::Object*);
 			bool is_true();
 			size_t length();
 			Object* operator[] (int);
 	};
+
+	typedef value::Object* (*bind_func_t)(int, value::Object**, State*);
 
 
 	Object* newlist(std::vector<Object> elms = std::vector<Object>());
@@ -117,7 +120,7 @@ namespace value {
 
 
 	std::vector<Argument>* parse_fn_args(value::Object);
-	void argument_scope_expand(std::vector<Argument>, std::vector<value::Object>, scope::Scope*);
+	void argument_scope_expand(std::vector<Argument>, std::vector<value::Object*>, scope::Scope*);
 }
 
 

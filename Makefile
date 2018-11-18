@@ -1,8 +1,8 @@
 CC = clang
 CXX = clang++
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
-CFLAGS = -I./include -O3
-CXXLDLIBS = -std=c++11 -lc -lgc -lreadline -O3
+CFLAGS = -I./include -g
+CXXLDLIBS = -std=c++11 -rdynamic -lc -lgc -lreadline -g
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)
@@ -54,6 +54,7 @@ clean:
 	@rm -rf $(OBJDIR)
 	@rm -rf $(exe)
 	@rm -rf src/lex.yy.cc
+	@rm -rf lib/stdbind.so
 
 install:
 	install wulf /usr/local/bin
@@ -65,7 +66,11 @@ src/lex.yy.cc: src/wulf.l
 	@flex -o $@ $<
 
 
+lib/stdbind.so: bindings/*.cc
+	@printf " SO\tlib/stdbind.so\n"
+	@clang++ -Iinclude -shared -undefined dynamic_lookup -o lib/stdbind.so bindings/*
 
-lib: runtime.wl
+
+lib: lib/runtime.wl lib/stdbind.so
 	@mkdir -p /usr/local/lib/wulf
-	@cp runtime.wl /usr/local/lib/wulf/
+	@cp -a lib/ /usr/local/lib/wulf

@@ -43,9 +43,11 @@ Object::Object(double val) {
 
 Object::Object(char* str) {
 	string = str;
+	type = value::string;
 }
 Object::Object(const char* str) {
-	string = strdup(str);
+	string = ccharcopy(str);
+	type = value::string;
 }
 
 Object::~Object() {
@@ -54,12 +56,10 @@ Object::~Object() {
 }
 
 void* Object::operator new(size_t size) {
-	// std::cout << "Object::new\n";
 	return GC_MALLOC(size);
 }
 
 void Object::operator delete(void* ptr) {
-	// std::cout << "Object::delete\n";
 	return GC_FREE(ptr);
 }
 
@@ -124,7 +124,11 @@ std::string Object::to_string(bool human) {
 
 			// procedure stringifier
 		case value::procedure:
-			buf << code->lambda->to_string();
+			if (code->type == vm::bc_binding) {
+				buf << "<procedure binding " << code->name << ">";
+			} else if (code->type == vm::bc_normal) {
+				buf << code->lambda->to_string();
+			}
 			break;
 	}
 
@@ -144,9 +148,7 @@ std::string Object::to_string(bool human) {
 
 
 void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
-	// std::cout << "compile " <<  to_string() << "\n";
 	switch (type) {
-
 		case value::unknown:
 			bc->push(vm::Instruction(OP_NOP));
 			return;
@@ -346,7 +348,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						auto self = *this;
 						if (len < 2) throw "call to if requires a predicate, then, and optionally a false";
 						if (len < 3) throw "call to if requires at least a truthy value";
-						if (len < 4) append(value::Object()); // if there isn't an else value, make it a nil
+						if (len < 4) append(new value::Object()); // if there isn't an else value, make it a nil
 
 						self[1]->compile(machine, sc, bc);
 						// push a branch onto the bytecode stack and keep a reference to it.
@@ -379,15 +381,15 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				// check if there is a macro for this function call
 				if (machine->macros.count(first->to_string())) {
 					// construct an argument list for the expansion
-					std::vector<value::Object> args;
+					std::vector<value::Object*> args;
 					int len = length();
 					for (int i = 1; i < len; i++) {
-						args.push_back(*operator[](i));
+						args.push_back(operator[](i));
 					}
 					auto macro = machine->macros[callname];
 					// expand and compile the macro
 					auto expansion = macro.expand(machine, args, sc);
-					expansion.compile(machine, sc, bc);
+					expansion->compile(machine, sc, bc);
 					return;
 				}
 
@@ -406,10 +408,10 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				// and if it does, it won't bother looking up the function at runtime
 				try {
 
-					value::Object calling = sc->root->find(first->to_string());
-					if (calling.type == value::procedure) {
+					value::Object *calling = sc->root->find(first->to_string());
+					if (calling->type == value::procedure) {
 						vm::Instruction in = OP_PUSH_RAW;
-						in.object = new value::Object(calling);
+						in.object = calling;
 						bc->push(in);
 					}
 				} catch (std::string msg) {
@@ -422,21 +424,6 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				return;
 			} break;
 
-
-		case value::string:
-			bc->push(vm::Instruction(OP_PUSH_STR, string));
-			return;
-
-		case value::number:
-			bc->push(vm::Instruction(OP_PUSH_NUM, number));
-			return;
-
-		case value::procedure: {
-				auto inst = vm::Instruction(OP_PUSH_RAW);
-				inst.object = this;
-				bc->push(inst);
-			}; break;
-
 		case value::ident: {
 				auto inst = vm::Instruction(OP_PUSH_LOOKUP);
 				inst.string = string;
@@ -444,7 +431,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				bc->push(inst);
 			}; break;
 
-		case value::keyword: {
+		default: {
 				 auto inst = vm::Instruction(OP_PUSH_RAW);
 				 inst.object = this;
 				 bc->push(inst);
@@ -469,8 +456,8 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 	if (type == value::list && first != NULL) {
 
 		if (is_call("unquote")) {
-			value::Object u = m->eval(*last->first, sc);
-			bc->push(OP_PUSH_RAW).object = new value::Object(u);
+			value::Object *u = m->eval(*last->first, sc);
+			bc->push(OP_PUSH_RAW).object = u;
 			return;
 		}
 
@@ -481,15 +468,15 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 		for (int i = 0; i < len; i++) {
 			auto *elem = operator[](i);
 			if (elem->is_call("unquote-splicing")) {
-				value::Object u = m->eval(*elem->operator[](1), sc);
-				if (u.type == value::list) {
-					int ulen = u.length();
+				value::Object *u = m->eval(*elem->operator[](1), sc);
+				if (u->type == value::list) {
+					int ulen = u->length();
 					consc += ulen-1;
 					for (int j = 0; j < ulen; j++) {
-						bc->push(OP_PUSH_RAW).object = u.operator[](j);
+						bc->push(OP_PUSH_RAW).object = u->operator[](j);
 					}
 				} else {
-					bc->push(OP_PUSH_RAW).object = new value::Object(u);
+					bc->push(OP_PUSH_RAW).object = u;
 				}
 			} else {
 				// if this isn't *really* a special call,
@@ -534,7 +521,7 @@ Object* Object::operator[](int index) {
 }
 
 
-void Object::append(value::Object obj) {
+void Object::append(value::Object *obj) {
 	if (type != value::list) throw "unable to push_back to non-list";
 	auto curr = this;
 
@@ -544,7 +531,7 @@ void Object::append(value::Object obj) {
 
 	curr->last = new value::Object(value::list);
 	curr->last->type = value::list;
-	curr->first = new value::Object(obj);
+	curr->first = obj;
 }
 
 
@@ -552,7 +539,7 @@ Object* value::newlist(std::vector<Object> items) {
 	auto *v = new Object();
 	v->type = value::list;
 	for (Object item : items) {
-		v->append(item);
+		v->append(new value::Object(item));
 	}
 	return v;
 }
@@ -617,7 +604,8 @@ std::vector<Argument>* value::parse_fn_args(value::Object list) {
 }
 
 
-void value::argument_scope_expand(std::vector<Argument> args, std::vector<value::Object> objs, scope::Scope* sc) {
+void value::argument_scope_expand(std::vector<Argument> args, std::vector<value::Object*> objs, scope::Scope* sc) {
+
 	int i, passedc;
 	value::Argument argname;
 
@@ -630,10 +618,9 @@ void value::argument_scope_expand(std::vector<Argument> args, std::vector<value:
 		if (argname.type == value::plain) {
 			sc->set(std::string(argname.name), objs[i]);
 		} else if (argname.type == value::rest) {
-			value::Object lst;
-			lst.type = value::list;
+			value::Object *lst = new value::Object(value::list);
 			while (i < passedc)
-				lst.append(objs[i++]);
+				lst->append(objs[i++]);
 			sc->set(std::string(argname.name), lst);
 		} else throw "invalid number of arguments passed";
 

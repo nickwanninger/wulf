@@ -69,7 +69,7 @@ Bucket* Scope::find_bucket(std::string name) {
 /*
  * find a variable name in the scope or check all parents
  */
-value::Object Scope::find(std::string name) {
+value::Object *Scope::find(std::string name) {
 	Bucket* buck = find_bucket(name);
 	if (buck == NULL) {
 		throw std::string("variable ") + name + " is not bound";
@@ -87,16 +87,16 @@ std::string Scope::to_string() {
 /*
  * set a binding in the current scope
  */
-void Scope::set(std::string name, value::Object val) {
+void Scope::set(std::string name, value::Object *val) {
 	bindings.getbucket(name)->val = val;
 }
 
-void Scope::set(const char* name, value::Object val) {
+void Scope::set(const char* name, value::Object *val) {
 	set(std::string(name), val);
 }
 
 void Scope::set(const char* name, double val) {
-	set(name, value::Object(val));
+	set(name, new value::Object(val));
 }
 
 void Scope::install_default_bindings() {
@@ -151,6 +151,6 @@ Bucket* Valmap::getbucket(const std::string key) {
 	return b;
 }
 
-value::Object& Valmap::operator[](const std::string key) {
+value::Object *Valmap::operator[](const std::string key) {
 	return getbucket(key)->val;
 }

@@ -22,7 +22,7 @@
 using namespace macro;
 
 // #define MACRO_DEBUG
-value::Object macro::Expansion::expand(vm::Machine* machine, std::vector<value::Object> arg_objs, scope::Scope* calling_scope) {
+value::Object *macro::Expansion::expand(vm::Machine* machine, std::vector<value::Object*> arg_objs, scope::Scope* calling_scope) {
 
 #ifdef MACRO_DEBUG
 	std::cout << ";\tExpanding macro " << this->name << "\n";
@@ -41,7 +41,7 @@ value::Object macro::Expansion::expand(vm::Machine* machine, std::vector<value::
 
 	scope::Scope *evaluation_scope = calling_scope->spawn_child();
 	value::argument_scope_expand(args, arg_objs, evaluation_scope);
-	value::Object exp = machine->eval(body, evaluation_scope);
+	value::Object *exp = machine->eval(body, evaluation_scope);
 #ifdef MACRO_DEBUG
 	std::cout << ";\tExpansion: " << exp.to_string() << "\n";
 #endif

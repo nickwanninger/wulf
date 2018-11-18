@@ -9,6 +9,8 @@
 (def ($ a f b) (f a b))
 
 
+
+
 ;; recursive factorial
 (def (fact n)
   (if (<= n 0)
@@ -59,13 +61,6 @@
      (fn (g)
        (f (fn (:rest a) (apply (g g) a)))))))
 
-(def fib1
-  (Y (fn (f)
-       (fn (x)
-         (if (< x 2)
-             x
-             (+ (f (- x 1)) (f (- x 2))))))))
-
 ; tail-recursive Fibonacci
 (def Yfib
   (fn (x)
@@ -90,6 +85,10 @@
     (thing (inc n))))
 
 
-(thing 0)
+
+(def (make-counter)
+  (let ((count 0))
+    (print count)
+    (fn (x) (set! count (+ count x)))))
 
 

@@ -25,6 +25,8 @@
 #include <gc/gc_cpp.h>
 #include <stack>
 #include <syscall.hh>
+
+
 using namespace vm;
 
 #define STACK_GROWTH_RATIO 2
@@ -58,7 +60,7 @@ void Stack::set(long i, stackval val) {
 }
 
 stackval Stack::get(long i) {
-	if (i < 0) return value::Object();
+	if (i < 0) throw "attempt to read from negative stack index";
 	return ref(i);
 }
 /*
@@ -110,6 +112,9 @@ void Stack::resize(long newsize) {
 
 
 long Stack::push(stackval val) {
+	val = new value::Object(*val);
+	//
+	// std::cout << "push: " << val << "\n";
 	set(index++, val);
 	return index;
 }
@@ -118,17 +123,18 @@ stackval Stack::pop() {
 	if (index > 0) --index;
 	auto val = get(index);
 	// zero out the old location
-	ref(index+1) = value::Object();
+	ref(index+1) = NULL;
 	long shrink_size = stacksize / STACK_GROWTH_RATIO;
 	if (index + STACK_BREATHING_ROOM <= shrink_size && shrink_size >= STACK_BASE_SIZE) {
 		resize(stacksize / STACK_GROWTH_RATIO);
 	}
+	// std::cout << "pop: " << val << "\n";
 	return val;
 }
 
 void Stack::dump() {
 	for (int i = 0; i < index; i++) {
-		printf("0x%06x  %s\n", i, get(i).to_string().c_str());
+		printf("0x%06x  %s\n", i, get(i)->to_string().c_str());
 	}
 }
 
@@ -191,7 +197,7 @@ std::string Instruction::to_string() {
 		OP_STRING(OP_RETURN); break;
 		OP_STRING(OP_JUMP) << "\t" << whole; break;
 		OP_STRING(OP_JUMP_FALSE) << "\t" << whole; break;
-		OP_STRING(OP_SYSCALL) << "\t" << object->to_string(); break;
+		OP_STRING(OP_SYSCALL); break;
 		OP_STRING(OP_BC_RETURN); break;
 	}
 	return buf.str();
@@ -207,12 +213,14 @@ Instruction & Bytecode::push(Instruction i) {
 
 Machine::Machine() {
 	stack = new Stack();
+	nilval = new value::Object();
+	trueval = new value::Object("t");
 }
 
 
 // provide a quick wrapper for evaluating an object with some scope
 //   this is used internally for the macro expansion system
-value::Object vm::Machine::eval(value::Object obj, scope::Scope* sc) {
+value::Object* vm::Machine::eval(value::Object obj, scope::Scope* sc) {
 	vm::Bytecode bc;
 
 	obj.compile(this, sc, &bc);
@@ -224,9 +232,10 @@ value::Object vm::Machine::eval(value::Object obj, scope::Scope* sc) {
 
 #define EVAL_DEBUG
 
-#define VAL_TRUE(val) ((val).type != value::nil)
+#define VAL_TRUE(val) ((val)->type != value::nil)
 
 long long call_count = 0;
+
 
 void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 	scope::Scope* sc = calling_scope;
@@ -237,18 +246,24 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 	bc_stk.push({bc, 0, 0});
 
 
+
+
+	trueval->type = value::ident;
+
 	while (bc_stk.top().pc < bc_stk.top().bc.instructions.size()) {
 		long long & pc = bc_stk.top().pc;
 
 
 		vm::Instruction & in = bc_stk.top().bc.instructions[pc];
+
+		// std::cout << in.to_string() << "\n";
 		if (debug) {
 			system("clear");
 			printf("in: %s\n", in.to_string().c_str());
 			printf("pc: %llu\n", pc);
 			printf("Stack:\n");
 			for (int i = 0; i < stack->index; i++) {
-				printf("0x%04x: %s\n", i, stack->get(i).to_string().c_str());
+				printf("0x%04x: %s\n", i, stack->get(i)->to_string().c_str());
 			}
 			std::cin.ignore();
 		}
@@ -256,46 +271,46 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 		switch (in.opcode) {
 
 			case OP_PUSH_NIL: {
-					stack->push(value::Object());
+					stack->push(nilval);
 					pc++;
 				}; break;
 
 			case OP_PUSH_NUM: {
-					auto val = value::Object(in.number);
+					auto *val = new value::Object(in.number);
 					stack->push(val);
 					pc++;
 				} break;
 
 			case OP_PUSH_IDENT: {
-					auto ident = value::Object(in.string);
-					ident.type = value::ident;
+					auto *ident = new value::Object(in.string);
+					ident->type = value::ident;
 					stack->push(ident);
 					pc++;
 				} break;
 
 			case OP_PUSH_STR: {
-					auto val = value::Object(in.string);
-					val.type = value::string;
+					auto *val = new value::Object(in.string);
+					val->type = value::string;
 					stack->push(val);
 					pc++;
 				} break;
 
 			case OP_PUSH_LIST: {
-					auto val = value::Object();
-					val.type = value::list;
+					auto *val = new value::Object();
+					val->type = value::list;
 					stack->push(val);
 					pc++;
 				} break;
 
 
 			case OP_INTERN: {
-						auto str = stack->pop();
-						if (str.type != value::string) throw "attempt to intern non-string";
-						auto kw = value::Object();
-						kw.type = value::keyword;
-						kw.string = new char[sizeof(str.string)+2];
-						strcpy(kw.string+1, str.string);
-						kw.string[0] = ':';
+						auto *str = stack->pop();
+						if (str->type != value::string) throw "attempt to intern non-string";
+						auto *kw = new value::Object();
+						kw->type = value::keyword;
+						kw->string = new char[sizeof(str->string)+2];
+						strcpy(kw->string+1, str->string);
+						kw->string[0] = ':';
 						stack->push(kw);
 						pc++;
 						break;
@@ -312,11 +327,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					auto b = stack->pop();
 					auto a = stack->pop();
 					if (!(VAL_TRUE(a) && VAL_TRUE(b))){
-						stack->push(value::Object());
+						stack->push(nilval);
 					} else {
-						auto t = value::Object("t");
-						t.type = value::ident;
-						stack->push(t);
+						stack->push(trueval);
 					}
 					pc++;
 				} break;
@@ -324,11 +337,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					auto b = stack->pop();
 					auto a = stack->pop();
 					if (!(VAL_TRUE(a) || VAL_TRUE(b))){
-						stack->push(value::Object());
+						stack->push(nilval);
 					} else {
-						auto t = value::Object("t");
-						t.type = value::ident;
-						stack->push(t);
+						stack->push(trueval);
 					}
 					pc++;
 				} break;
@@ -338,8 +349,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_EXIT: {
 					auto code = stack->pop();
-					if (code.type == value::number) exit((int)code.number);
-					std::cerr << code.to_string() << "\n";
+					if (code->type == value::number) exit((int)code->number);
+					std::cerr << code->to_string() << "\n";
 					exit(1);
 					pc++;
 				}; break;
@@ -349,22 +360,22 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				break;
 
 			case OP_PUSH_RAW: {
-					auto obj = *in.object;
-					if (obj.type == value::procedure) {
-						obj.defining_scope = sc;
+					auto *obj = in.object;
+					if (obj->type == value::procedure) {
+						obj->defining_scope = sc;
 					}
 					stack->push(obj);
 					pc++;
 				}; break;
 
 			case OP_PUSH_LOOKUP: {
-					value::Object val = sc->find(in.string);
+					value::Object *val = sc->find(in.string);
 					stack->push(val);
 					pc++;
 				}; break;
 
 			case OP_STORE_GLOBAL: {
-					auto val = stack->pop();
+					value::Object *val = stack->pop();
 					sc->root->set(in.string, val);
 					stack->push(val);
 					pc++;
@@ -390,31 +401,43 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 					// where the "frame" starts for this call. this will be used to jump back to and push
 					// the return value when returning
 					new_call.sp = stack->index;
-					if (callable.type != value::procedure) {
-						std::cout << "CALLABLE: " << callable.to_string() << "\n";
+					if (callable->type != value::procedure) {
+						std::cout << "CALLABLE: " << callable->to_string() << "\n";
 						throw "attempt to call non-procedure";
 					}
 
-					// printf("defining scope: %p\n", (void*) callable.defining_scope);
-					int passedc = in.whole;
-					std::vector<value::Argument> argnames = *callable.args;
-					std::vector<value::Object> arglist;
 
-					// pop off the args in the right order.
-					for (i = 0; i < passedc; i++) {
-						auto arg = stack->pop();
-						arglist.insert(arglist.begin(), arg);
-					}
 
-					auto *newscope = callable.defining_scope->spawn_child();
-					newscope->returning_scope = sc;
-					// expand the arguments into the scope
-					value::argument_scope_expand(argnames, arglist, newscope);
-					sc = newscope;
-					vm::Bytecode lambda_bc = *(callable.code);
-					new_call.bc = lambda_bc;
-					new_call.pc = 0;
-					bc_stk.push(new_call);
+					if (callable->code->type == vm::bc_binding) {
+						int argc = in.whole;
+						value::Object **argv = new value::Object*[argc];
+						for (int i = argc-1; i >= 0; i--) {
+							argv[i] = stack->pop();
+						}
+						value::Object *res = callable->code->binding(argc, argv, state);
+						stack->push(res);
+					} else if (callable->code->type == vm::bc_normal) {
+						// printf("defining scope: %p\n", (void*) callable.defining_scope);
+						int passedc = in.whole;
+						std::vector<value::Argument> argnames = *callable->args;
+						std::vector<value::Object*> arglist;
+
+						// pop off the args in the right order.
+						for (i = 0; i < passedc; i++) {
+							auto *arg = stack->pop();
+							arglist.insert(arglist.begin(), arg);
+						}
+
+						auto *newscope = callable->defining_scope->spawn_child();
+						newscope->returning_scope = sc;
+						// expand the arguments into the scope
+						value::argument_scope_expand(argnames, arglist, newscope);
+						sc = newscope;
+						vm::Bytecode lambda_bc = *(callable->code);
+						new_call.bc = lambda_bc;
+						new_call.pc = 0;
+						bc_stk.push(new_call);
+					} else throw "unknown callable type";
 					pc++;
 				}; break;
 
@@ -448,20 +471,21 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 
 			case OP_CONS: {
+
 						auto lst = stack->pop();
 						auto val = stack->pop();
 
-						if (lst.type != value::list) {
-							if (lst.type == value::nil) {
-								lst.type = value::list;
+						if (lst->type != value::list) {
+							if (lst->type == value::nil) {
+								lst->type = value::list;
 							} else {
 								throw "attempt to cons to non-list";
 							}
 						}
-						auto newlist = value::Object();
-						newlist.type = value::list;
-						newlist.first = new value::Object(val);
-						newlist.last = new value::Object(lst);
+						auto *newlist = new value::Object();
+						newlist->type = value::list;
+						newlist->first = val;
+						newlist->last = lst;
 						stack->push(newlist);
 						pc++;
 					}; break;
@@ -473,8 +497,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 					// std::cout << "(syscall " << arg1.to_string() << " " << arg2.to_string() << ")\n";
 
-					if (arg1.type != value::number) throw "attempt to call syscall with non-number as first argument";
-					int syscalli = arg1.number;
+					if (arg1->type != value::number) throw "attempt to call syscall with non-number as first argument";
+					int syscalli = arg1->number;
 
 					handle_syscall(bc_stk, sc, pc, in, syscalli, arg2);
 
@@ -483,15 +507,11 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_NOT: {
-					auto arg = stack->pop();
-					if (arg.type == value::nil) {
-						auto t = value::Object("t");
-						t.type = value::ident;
-						stack->push(t);
+					auto *arg = stack->pop();
+					if (arg->type == value::nil) {
+						stack->push(trueval);
 					} else {
-						auto nil = value::Object();
-						nil.type = value::nil;
-						stack->push(nil);
+						stack->push(nilval);
 					}
 					pc++;
 				}; break;
@@ -501,8 +521,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_JUMP_FALSE: {
-					auto arg = stack->pop();
-					if (arg.type == value::nil)
+					auto *arg = stack->pop();
+					if (arg->type == value::nil)
 						pc = in.whole;
 					else pc++;
 				}; break;
@@ -559,66 +579,66 @@ void vm::Machine::handle_syscall(
 		long long & pc,
 		vm::Instruction & inst,
 		int syscalli,
-		value::Object arg) {
+		value::Object *arg) {
 	// 0 = exit
 	//
 	switch (syscalli) {
 		case (SYS_EXIT): {
-			if (arg.type == value::number) {
-				exit(arg.number);
+			if (arg->type == value::number) {
+				exit(arg->number);
 			} else {
-				std::cout << arg.to_string(true) << "\n";
+				std::cout << arg->to_string(true) << "\n";
 				exit(1);
 			}
 		}; break;
 
 		case SYS_EVAL: {
 			Bytecode evalbc;
-			arg.compile(this, sc, &evalbc);
+			arg->compile(this, sc, &evalbc);
 			evalbc.push(OP_BC_RETURN);
 			bc_stk.push({evalbc, 0, stack->index});
 		}; break;
 
 		case SYS_MACROEXPAND: {
-				if (arg.type != value::list) throw "unable to macroexpand a non-list";
-				if (arg.length() == 0) throw "unble to macroexpand empty list";
-				if (arg.first->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
-				const char* callname = arg.first->to_string().c_str();
+				if (arg->type != value::list) throw "unable to macroexpand a non-list";
+				if (arg->length() == 0) throw "unble to macroexpand empty list";
+				if (arg->first->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
+				const char* callname = arg->first->to_string().c_str();
 
-				if (macros.count(arg.first->to_string())) {
+				if (macros.count(arg->first->to_string())) {
 					// construct an argument list for the expansion
-					std::vector<value::Object> args;
-					int len = arg.length();
+					std::vector<value::Object*> args;
+					int len = arg->length();
 					for (int i = 1; i < len; i++) {
-						args.push_back(*arg[i]);
+						args.push_back(arg->operator[](i));
 					}
 					auto macro = macros[callname];
 					// expand and compile the macro
-					auto expansion = macro.expand(this, args, sc);
+					auto *expansion = macro.expand(this, args, sc);
 					stack->push(expansion);
 					return;
 				} else throw "unable to find macro to expand";
 		}; break;
 
 		case SYS_PRINT: {
-			std::cout << arg.to_string(true);
+			std::cout << arg->to_string(true);
 		}; break;
 
 		case SYS_LOAD: {
-			if (arg.type != value::string) throw "syscall load requires a string filepath";
+			if (arg->type != value::string) throw "syscall load requires a string filepath";
 			bool repls = state->repl;
 			state->repl = false;
-			char* path = ccharcopy(arg.to_string(true).c_str());
+			char* path = ccharcopy(arg->to_string(true).c_str());
 			state->eval_file(path);
 			state->repl = repls;
 		}; break;
 
 		case SYS_TYPE: {
 			auto val = arg;
-			auto type_kw = value::Object(value::keyword);
-			type_kw.type = value::keyword;
+			auto *type_kw = new value::Object(value::keyword);
+			type_kw->type = value::keyword;
 			using namespace value;
-			#define TYPEOFVALUE(x) if (val.type == x) {type_kw.string = strdup(":"#x);}
+			#define TYPEOFVALUE(x) if (val->type == x) {type_kw->string = ccharcopy(":"#x);}
 			TYPEOFVALUE(list);
 			TYPEOFVALUE(ident);
 			TYPEOFVALUE(string);
@@ -630,100 +650,43 @@ void vm::Machine::handle_syscall(
 		}; break;
 
 		case SYS_SHELL: {
-			if (arg.type != value::string) throw "shell systemcall requires string command to be executed with `sh -c '...'`";
-			std::string data = eval_shell_cmd(arg.string);
-			value::Object obj;
-			obj.type = value::string;
-			obj.string = strdup(data.c_str());
+			if (arg->type != value::string) throw "shell systemcall requires string command to be executed with `sh -c '...'`";
+			std::string data = eval_shell_cmd(arg->string);
+			value::Object *obj = new value::Object(value::string);
+			obj->string = ccharcopy(data.c_str());
 			stack->push(obj);
 		}; break;
-
-		case SYS_ADD: {
-				double total = 0;
-				if (arg.type != value::list) throw "add syscall requires a list of arguments to add";
-				int len = arg.length();
-				for (int i = 0; i < len; i++) {
-					auto *v = arg[i];
-					if (v->type != value::number) throw "add requires only numbers";
-					total += arg[i]->number;
-				}
-				stack->push(total);
-			}; break;
-
-		case SYS_SUB	: {
-				double total = 0;
-				if (arg.type != value::list) throw "subtraction syscall requires a list of arguments to add";
-				int len = arg.length();
-
-				if (arg[0]->type != value::number) throw "subtraction requires only numbers";
-				if (len == 1) {
-					total = -arg[0]->number;
-				} else {
-					total = arg[0]->number;
-					for (int i = 1; i < len; i++) {
-						auto *v = arg[i];
-						if (v->type != value::number) throw "subtraction requires only numbers";
-						total -= arg[i]->number;
-					}
-				}
-				stack->push(total);
-			}; break;
-
-		case SYS_MUL: {
-				double total = 1;
-				if (arg.type != value::list) throw "multiplication syscall requires a list of arguments";
-				int len = arg.length();
-				for (int i = 0; i < len; i++) {
-					auto *val = arg[i];
-					if (val->type != value::number) throw "multiplication requires only numbers";
-					total *= val->number;
-				}
-				stack->push(total);
-			}; break;
-		case SYS_DIV: {
-				if (arg.type != value::list) throw "division syscall requires a list of arguments";
-				int len = arg.length();
-				if (arg.length() < 2) throw "division requires at least two arguments";
-				if (arg[0]->type != value::number) throw "division requires only numbers";
-				double total = arg[0]->number;
-				for (int i = 0; i < len; i++) {
-					auto *val = arg[i];
-					if (val->type != value::number) throw "division requires only numbers";
-					total /= val->number;
-				}
-				stack->push(total);
-			}; break;
 
 
 		case SYS_CAR: {
 			auto lst = arg;
-			if (lst.type != value::list) {
-				if (lst.type == value::nil) {
-					stack->push(value::Object());
+			if (lst->type != value::list) {
+				if (lst->type == value::nil) {
+					stack->push(nilval);
 				} else {
 					throw "attempt to car non-list";
 				}
 			} else {
-				stack->push(*lst.first);
+				stack->push(new value::Object(*lst->first));
 			}
 		}; break;
 
 		case SYS_CDR: {
 			auto lst = arg;
-			if (lst.type != value::list) {
-				if (lst.type == value::nil) {
-					stack->push(value::Object());
+			if (lst->type != value::list) {
+				if (lst->type == value::nil) {
+					stack->push(nilval);
 				} else {
 					throw "attempt to cdr non-list";
 				}
 			} else {
-				if (lst.last == NULL) {
-					stack->push(value::Object(value::nil));
+				if (lst->last == NULL) {
+					stack->push(nilval);
 				} else {
-					if ((*lst.last).length() == 0) {
-						stack->push(value::Object());
+					if (lst->last->length() == 0) {
+						stack->push(nilval);
 					} else {
-						stack->push(*lst.last);
+						stack->push(lst->last);
 					}
 				}
 			}
@@ -731,8 +694,8 @@ void vm::Machine::handle_syscall(
 
 		case SYS_RNG: {
 			double x = (double)rand()/(double)(RAND_MAX);
-			auto num = value::Object(value::number);
-			num.number = x;
+			auto *num = new value::Object(value::number);
+			num->number = x;
 			stack->push(num);
 		}; break;
 
@@ -740,14 +703,14 @@ void vm::Machine::handle_syscall(
 			size_t start = GC_get_heap_size();
 			GC_gcollect();
 			size_t diff = GC_get_heap_size();
-			auto num = value::Object(value::number);
-			num.number = diff;
+			auto *num = new value::Object(value::number);
+			num->number = diff;
 			stack->push(num);
 		}; break;
 
 		case SYS_CONS: {
-			auto val = arg[0];
-			auto lst = arg[1];
+			auto *val = arg->operator[](0);
+			auto *lst = arg->operator[](1);
 			if (lst->type != value::list) {
 				if (lst->type == value::nil) {
 					lst->type = value::list;
@@ -755,97 +718,93 @@ void vm::Machine::handle_syscall(
 					throw "attempt to cons to non-list";
 				}
 			}
-			auto newlist = value::Object();
-			newlist.type = value::list;
-			newlist.first = new value::Object(*val);
-			newlist.last = new value::Object(*lst);
+			auto *newlist = new value::Object();
+			newlist->type = value::list;
+			newlist->first = val;
+			newlist->last = lst;
 			stack->push(newlist);
 		}; break;
 
 
 
 		case SYS_EQUAL: {
-				auto a = *arg[0];
-				auto b = *arg[1];
-				auto tr = value::Object("t");
-				tr.type = value::ident;
-				if (a.type == b.type && a.type == value::number) {
-					if (a.number == b.number) {
-						stack->push(tr);
+				auto *a = arg->operator[](0);
+				auto *b = arg->operator[](1);
+				if (a->type == b->type && a->type == value::number) {
+					if (a->number == b->number) {
+						stack->push(trueval);
 					} else {
-						stack->push(value::Object());
+						stack->push(nilval);
 					}
 					return;
 				}
 				// special case nil and list comparison
 				// todo: wrap this all in an `==` overloaded operator
-				if (a.type == value::list || b.type == value::list) {
-					if (a.type == value::nil || b.type == value::nil) {
-						auto the_list = a.type == value::list ? a : b;
-						auto the_nil = a.type == value::nil ? a : b;
-						if (the_list.length() != 0) {
-							stack->push(value::Object(value::nil));
+				if (a->type == value::list || b->type == value::list) {
+					if (a->type == value::nil || b->type == value::nil) {
+						auto the_list = a->type == value::list ? a : b;
+						auto the_nil = a->type == value::nil ? a : b;
+						if (the_list->length() != 0) {
+							stack->push(nilval);
 						}
 					}
-				} else if (a.type != b.type || a.to_string() != b.to_string()) {
-					stack->push(value::Object(value::nil));
+				} else if (a->type != b->type || a->to_string() != b->to_string()) {
+					stack->push(nilval);
 				} else {
-					stack->push(tr);
+					stack->push(trueval);
 				}
 			}; break;
 
 
 
 		case SYS_LT: {
-				auto a1 = *arg[0];
-				auto a2 = *arg[1];
-				if (a2.type != a1.type || a2.type != value::number) throw "attempt to compare two non-numbers";
-				if (a1.number < a2.number) {
-					auto t = value::Object("t");
-					t.type = value::ident;
-					stack->push(t);
+				auto *a1 = arg->operator[](0);
+				auto *a2 = arg->operator[](1);
+				if (a2->type != a1->type || a2->type != value::number) throw "attempt to compare two non-numbers";
+				if (a1->number < a2->number) {
+					stack->push(trueval);
 				} else {
-					stack->push(value::Object());
+					stack->push(nilval);
 				}
 			}; break;
 
 
 
 		case SYS_STRCONV: {
-				value::Object str_o;
-				str_o.type = value::string;
-				auto s = arg.to_string(true);
-				str_o.string = new char[s.size()+1];
-				memcpy(str_o.string, s.c_str(), s.size() + 1);
+				value::Object *str_o = new value::Object();
+				str_o->type = value::string;
+				std::string s = arg->to_string(true);
+				str_o->string = new char[s.size()+1];
+				memcpy(str_o->string, s.c_str(), s.size() + 1);
 				stack->push(str_o);
 			}; break;
 
 		case SYS_STRLEN: {
-				stack->push((double)arg.to_string().size());
+				stack->push(new value::Object((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRREF: {
-				stack->push((double)arg.to_string().size());
+				stack->push(new value::Object((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRSET: {
-				stack->push((double)arg.to_string().size());
+				stack->push(new value::Object((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRCAT: {
-				if (arg[0]->type != value::string || arg[0]->type != arg[1]->type) throw "string concatination requires two strings";
-				auto s = arg[0]->to_string(true) + arg[1]->to_string(true);
+				if (arg->operator[](0)->type != value::string || arg->operator[](0)->type != arg->operator[](1)->type) throw "string concatination requires two strings";
+				auto s = arg->operator[](0)->to_string(true) + arg->operator[](1)->to_string(true);
 				auto len = s.size();
-				value::Object str_o;
-				str_o.type = value::string;
-				str_o.string = new char[len+1];
-				memcpy(str_o.string, s.c_str(), len+1);
+				value::Object *str_o = new value::Object();
+				str_o->type = value::string;
+				str_o->string = new char[len+1];
+				memcpy(str_o->string, s.c_str(), len+1);
 				stack->push(str_o);
 			}; break;
 
 
 		default: {
-			stack->push(value::Object());
+			stack->push(nilval);
 			std::cerr << "unknown syscall " << syscalli << ". ignoring and returning nil\n";
 		}
 	}

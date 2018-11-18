@@ -33,7 +33,7 @@ namespace macro {
 			std::vector<value::Argument> args;
 			value::Object body;
 			// expand a macro using the argument literal values
-			value::Object expand(vm::Machine*, std::vector<value::Object>, scope::Scope*);
+			value::Object *expand(vm::Machine*, std::vector<value::Object*>, scope::Scope*);
 	};
 }
 

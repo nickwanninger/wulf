@@ -26,21 +26,28 @@
 
 (def (macroexpand exp) (syscall 3 exp))
 
-(def (+ :rest a) (syscall 11 a))
 
-(def (- :rest a) (syscall 12 a))
+(defmacro (stdproc id bname)
+  `(def ,id (proc-binding "/usr/local/lib/wulf/stdbind.so" ,bname)))
 
-(def (* :rest a) (syscall 13 a))
 
-(def (/ :rest a) (syscall 14 a))
+;; --------------- MATH ----------------
+
+
+(stdproc + "add")
+(stdproc - "sub")
+(stdproc * "mul")
+(stdproc / "divide")
+(stdproc mod "mod")
+(stdproc pow "wulf_pow")
+
+
+(stdproc sqrt "wulf_sqrt")
+(stdproc cos "wulf_cos")
+(stdproc sin "wulf_sin")
+(stdproc tan "wulf_tan")
 
 (def (abs x) (if (> x 0) x (- 0 x)))
-
-(def (pow b n)
-  (if (= n 0)
-    1
-    (* b (pow b (- n 1)))))
-
 
 (def (= a b) (syscall 25 (list a b)))
 (def (< a b) (syscall 26 (list a b)))
@@ -48,6 +55,13 @@
 (def (> a b) (not (or (< a b) (= a b))))
 (def (>= a b) (not (< a b)))
 (def (<= a b) (not (> a b)))
+
+
+(def pi 3.14159265359)
+
+(def (signum x)
+  (if (= x 0) x (/ x (abs x))))
+
 
 ;; -------------------------------------
 

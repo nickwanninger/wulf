@@ -32,6 +32,8 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <autonum.hh>
+#include <stdlib.h>
+#include <dlfcn.h>
 
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
@@ -51,7 +53,6 @@ int main(int argc, char** argv) {
 
 	try {
 		bool interactive = false;
-
 		auto *state = new State();
 		char opt;
 		while ((opt = getopt(argc, argv, "i")) != -1) {
@@ -96,6 +97,8 @@ int main(int argc, char** argv) {
 
 	} catch (std::string err) {
 		std::cerr << "Error: " << err << "\n";
+	} catch (const char* err) {
+		std::cerr << "Error: " << err << "\n";
 	}
 
 	return 0;
@@ -126,9 +129,9 @@ void* operator new[](size_t size) {
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
-	free_fn(ptr);
+	//free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
-	free_fn(ptr);
+	//free_fn(ptr);
 }
 
