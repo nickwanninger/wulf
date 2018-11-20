@@ -186,10 +186,16 @@
 
 
 ;; create a list of numbers a inclusive to b exclusive
+
+
+
+(def (range-step a b step)
+  (if (< a b) (cons a (range-step (+ a step) b step))))
+
 (def (range a b)
-  (if (< a b) (cons a (range (inc a) b))))
-(def (zero-to a) (range 0 (inc a)))
-(def (zero-upto a) (range 0 a))
+  (if (< a b) (cons a (range-step (inc a) b 1))))
+(def (zero-to a) (range-step 0 (inc a) 1))
+(def (zero-upto a) (range-step 0 a 1))
 
 
 ;; return the nth item in a list l
@@ -248,4 +254,9 @@
 
 
 
+(stdproc make-custom "make_custom")
+(stdproc malloc "wulf_malloc")
 
+(stdproc eval-thread "eval_thread")
+(stdproc join "thread_join")
+(defmacro (thread expr) `(eval-thread ',expr))

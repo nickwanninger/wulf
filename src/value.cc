@@ -140,6 +140,15 @@ void Object::write_stream(std::ostream & buf, bool human) {
 				buf << code->lambda->to_string();
 			}
 			break;
+		case value::custom: {
+				buf << "<";
+				if (type_name == NULL) buf << "custom-type";
+				else {
+					buf << type_name;
+				}
+				buf << " ";
+				buf << payload << ">";
+			}; break;
 	}
 }
 
@@ -153,8 +162,6 @@ std::string Object::to_string(bool human) {
 
 	return str;
 }
-
-
 
 
 

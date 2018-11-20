@@ -6,7 +6,7 @@
 #include <state.hh>
 
 
-#define wulf_binding(name) extern "C" value::Object* name(int argc, value::Object **argv, State* state)
+#define wulf_binding(name) extern "C" value::Object* name(int argc, value::Object **argv, State* state, scope::Scope* scope)
 
 
 #endif

@@ -57,9 +57,7 @@
           (f (- x 1) b (+ a b))))))
      x 0 1)))
 
-(def (fib-iter a b count)
-  (if (= count 0)
-    b
-    (fib-iter (+ a b) a (- count 1))))
-
-; (def (fib n) (fib-iter 1 0 n))
+(def (loopthing id i)
+  (do
+    (print (list id i (Yfib i)))
+    (loopthing id (inc i))))

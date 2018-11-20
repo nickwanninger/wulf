@@ -33,7 +33,7 @@ using namespace vm;
 #define STACK_BASE_SIZE 64
 #define STACK_BREATHING_ROOM 20
 
-// #define STACK_DEBUG
+#define STACK_DEBUG
 
 typedef stackval* stackblock;
 
@@ -418,7 +418,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						for (int i = argc-1; i >= 0; i--) {
 							argv[i] = stack->pop();
 						}
-						value::Object *res = callable->code->binding(argc, argv, state);
+						value::Object *res = callable->code->binding(argc, argv, state, sc);
 						stack->push(res);
 					} else if (callable->code->type == vm::bc_normal) {
 						// printf("defining scope: %p\n", (void*) callable.defining_scope);

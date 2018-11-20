@@ -34,6 +34,7 @@ class State;
 using stringlist = std::vector<std::string>;
 typedef std::vector<value::Object> valuelist;
 
+
 namespace value {
 
 	enum ArgType {
@@ -58,8 +59,10 @@ namespace value {
 		procedure, // 5
 		keyword, // 6
 		nil,     // 7
+		custom,  // 8
 	};
 
+	using objectptr = std::shared_ptr<Object>;
 
 	class Object {
 		public:
@@ -84,6 +87,12 @@ namespace value {
 					vm::Bytecode* code;
 					std::vector<Argument> *args;
 					scope::Scope* defining_scope;
+				};
+
+
+				struct {
+					void *payload;
+					const char *type_name;
 				};
 			};
 			/*
@@ -114,9 +123,10 @@ namespace value {
 	};
 
 
+
 	Object *copy(Object*);
 
-	typedef value::Object* (*bind_func_t)(int, value::Object**, State*);
+	typedef value::Object* (*bind_func_t)(int, value::Object**, State*, scope::Scope*);
 
 
 	Object* newlist(std::vector<Object> elms = std::vector<Object>());

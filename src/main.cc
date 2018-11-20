@@ -24,6 +24,8 @@
 #include <scope.hh>
 #include <thread>
 #include <value.hh>
+#define GC_THREADS
+#include <gc.h>
 #include <gc/gc_cpp.h>
 #include <vm.hh>
 #include <value.hh>
@@ -44,12 +46,15 @@
 
 
 int main(int argc, char** argv) {
-	GC_init();
-
-	// GC_enable_incremental();
+	GC_INIT();
+	GC_allow_register_threads();
+	GC_enable_incremental();
 
 	// setup the random number generator
 	srand((unsigned int)time(NULL));
+
+
+
 
 	try {
 		bool interactive = false;
@@ -123,15 +128,18 @@ void* operator new[](size_t size) {
 	return alloc_fn(size);
 }
 
+
 #ifdef __GLIBC__
 #define _NOEXCEPT _GLIBCXX_USE_NOEXCEPT
 #endif
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
+	//std::cout << "delete\n";
 	free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
+	// std::cout << "delete[]\n";
 	free_fn(ptr);
 }
 

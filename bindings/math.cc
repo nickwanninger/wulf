@@ -11,7 +11,6 @@ wulf_binding(add) {
 		if (argv[i]->type != value::number) throw "addition requires only numbers";
 		total += argv[i]->number;
 	}
-	delete argv;
 	return new value::Object(total);
 }
 
@@ -42,7 +41,6 @@ wulf_binding(mul) {
 		if (argv[i]->type != value::number) throw "multiplication requires only numbers";
 		total *= argv[i]->number;
 	}
-	delete argv;
 	return new value::Object(total);
 }
 

@@ -32,7 +32,7 @@
 
 
 
-value::Object* proc_binding_binding(int argc, value::Object **argv, State* state) {
+value::Object* proc_binding_binding(int argc, value::Object **argv, State* state, scope::Scope* sc) {
 	if (argc != 2) {
 		return new value::Object("must have two arguments");
 	}
