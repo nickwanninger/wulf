@@ -220,10 +220,10 @@ Machine::Machine() {
 
 // provide a quick wrapper for evaluating an object with some scope
 //   this is used internally for the macro expansion system
-value::Object* vm::Machine::eval(value::Object obj, scope::Scope* sc) {
+value::Object* vm::Machine::eval(value::Object *obj, scope::Scope* sc) {
 	vm::Bytecode bc;
 
-	obj.compile(this, sc, &bc);
+	obj->compile(this, sc, &bc);
 
 	eval(bc, sc);
 
@@ -361,10 +361,14 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 			case OP_PUSH_RAW: {
 					auto *obj = in.object;
-					if (obj->type == value::procedure) {
-						obj->defining_scope = sc;
-					}
 					stack->push(obj);
+					pc++;
+				}; break;
+
+			case OP_PUSH_FN: {
+					auto *fn = in.object;
+					fn->defining_scope = sc;
+					stack->push(fn);
 					pc++;
 				}; break;
 
@@ -474,16 +478,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 						auto lst = stack->pop();
 						auto val = stack->pop();
-
-						if (lst->type != value::list) {
-							if (lst->type == value::nil) {
-								lst->type = value::list;
-							} else {
-								throw "attempt to cons to non-list";
-							}
-						}
-						auto *newlist = new value::Object();
-						newlist->type = value::list;
+						auto *newlist = new value::Object(value::list);
 						newlist->first = val;
 						newlist->last = lst;
 						stack->push(newlist);
@@ -614,7 +609,7 @@ void vm::Machine::handle_syscall(
 					}
 					auto macro = macros[callname];
 					// expand and compile the macro
-					auto *expansion = macro.expand(this, args, sc);
+					auto *expansion = macro->expand(this, args, sc);
 					stack->push(expansion);
 					return;
 				} else throw "unable to find macro to expand";
@@ -708,30 +703,23 @@ void vm::Machine::handle_syscall(
 			stack->push(num);
 		}; break;
 
-		case SYS_CONS: {
-			auto *val = arg->operator[](0);
-			auto *lst = arg->operator[](1);
-			if (lst->type != value::list) {
-				if (lst->type == value::nil) {
-					lst->type = value::list;
-				} else {
-					throw "attempt to cons to non-list";
-				}
-			}
-			auto *newlist = new value::Object();
-			newlist->type = value::list;
-			newlist->first = val;
-			newlist->last = lst;
-			stack->push(newlist);
-		}; break;
-
 
 
 		case SYS_EQUAL: {
 				auto *a = arg->operator[](0);
 				auto *b = arg->operator[](1);
+
 				if (a->type == b->type && a->type == value::number) {
 					if (a->number == b->number) {
+						stack->push(trueval);
+					} else {
+						stack->push(nilval);
+					}
+					return;
+				}
+
+				if (a->type == value::procedure && b->type == value::procedure) {
+					if (a->code == b->code) {
 						stack->push(trueval);
 					} else {
 						stack->push(nilval);

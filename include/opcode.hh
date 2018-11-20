@@ -35,6 +35,8 @@ typedef unsigned char opcode_t;
 #define OP_PUSH_RAW      0x09
 #define OP_STORE_LOCAL   0x0a
 
+#define OP_PUSH_FN       0x0b
+
 // math operations are always of the form 0x5n
 #define OP_ADD        0x50
 #define OP_SUB        0x51

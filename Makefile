@@ -1,8 +1,8 @@
 CC = clang
 CXX = clang++
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
-CFLAGS = -I./include -g
-CXXLDLIBS = -std=c++11 -rdynamic -lc -lgc -lreadline -g
+CFLAGS = -I./include -O3
+CXXLDLIBS = -std=c++11 -lc -lgc -lreadline -O3
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)
@@ -67,7 +67,7 @@ src/lex.yy.cc: src/wulf.l
 
 
 lib/stdbind.so: bindings/*.cc
-	@printf " SO\tlib/stdbind.so\n"
+	@printf " SO\t$@\n"
 	@clang++ -Iinclude -shared -undefined dynamic_lookup -o lib/stdbind.so bindings/*
 
 

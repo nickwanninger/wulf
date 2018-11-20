@@ -33,17 +33,25 @@ value::Object *macro::Expansion::expand(vm::Machine* machine, std::vector<value:
 	}
 	std::cout << "\b)\n";
 	std::cout << ";\targs passed: (";
-	for (auto a : arg_objs) std::cout << a.to_string() << " ";
+	for (auto a : arg_objs) std::cout << a->to_string() << " ";
 	std::cout << "\b)\n";
 
-	std::cout << ";\tbody: " << body.to_string() << "\n";
+	std::cout << body << "\n";
+
+	std::cout << ";\tbody: " << body->to_string() << "\n";
 #endif
 
 	scope::Scope *evaluation_scope = calling_scope->spawn_child();
+
+	try {
 	value::argument_scope_expand(args, arg_objs, evaluation_scope);
+	} catch (const char* err) {
+		std::cerr << "error in macro '" << name << "' expansion: " << err << "\n";
+		exit(1);
+	}
 	value::Object *exp = machine->eval(body, evaluation_scope);
 #ifdef MACRO_DEBUG
-	std::cout << ";\tExpansion: " << exp.to_string() << "\n";
+	std::cout << ";\tExpansion: " << exp->to_string() << "\n";
 #endif
 	return exp;
 }

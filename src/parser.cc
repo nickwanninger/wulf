@@ -111,6 +111,14 @@ value::Object* Parser::parse_list() {
 	}
 	// step forward after the last right paren in the list
 	next();
+
+	if (obj->length() == 3) {
+		value::Object *middle = obj->operator[](1);
+		value::Object *last = obj->operator[](2);
+		if (middle->type == value::ident && strcmp(middle->string, ".") == 0) {
+			obj->last = last;
+		}
+	}
 	return obj;
 }
 

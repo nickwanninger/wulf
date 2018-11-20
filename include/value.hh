@@ -107,6 +107,8 @@ namespace value {
 			void append(value::Object*);
 			bool is_true();
 			size_t length();
+
+			bool is_pair();
 			Object* operator[] (int);
 	};
 

@@ -58,7 +58,7 @@ std::vector<Token> Scanner::run() {
 	// scan over all the tokens
 	// adding them to the vector
 	while ((ntok = yylex())) {
-		Token tok(ntok, strdup(yytext));
+		Token tok(ntok, ccharcopy(yytext));
 		toks.push_back(tok);
 	}
 

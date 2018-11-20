@@ -3,14 +3,6 @@
     i
     (reduce f (f i (car xs)) (cdr xs))))
 
-(def (first l) (syscall 19 l))
-(def (rest l) (syscall 20 l))
-
-(def ($ a f b) (f a b))
-
-
-
-
 ;; recursive factorial
 (def (fact n)
   (if (<= n 0)
@@ -46,15 +38,9 @@
   (* (sum f
           (+ a (/ dx 2.0))
           b
-          (fn x (+ x dx)))
-     dx))
+          (fn x (+ x dx))) dx))
 
-
-(def (second x) (car (cdr x)))
-
-(def (ffirst x) (first (first x)))
-
-;;; define the fixed-point y-combinator
+;;; define the y-combinator
 (def Y                ; (Y f) = (g g) where
   (fn (f)             ;         (g g) = (f  (lambda a (apply (g g) a)))
     ((fn (g) (g g))   ; (Y f) ==        (f  (lambda a (apply (Y f) a)))
@@ -88,7 +74,5 @@
 
 (def (make-counter)
   (let ((count 0))
-    (print count)
     (fn (x) (set! count (+ count x)))))
-
 

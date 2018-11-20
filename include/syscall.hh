@@ -37,8 +37,6 @@
 
 #define SYS_GC_COLLECT 23
 
-#define SYS_CONS 24
-
 
 #define SYS_EQUAL 25
 #define SYS_LT    26

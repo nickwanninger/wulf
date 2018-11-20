@@ -76,12 +76,24 @@ std::string Object::to_string(bool human) {
 			buf << "nil";
 			break;
 		case value::list: {
+
 				if (first == NULL) return "()";
+
+				if (last == NULL) last = new value::Object(value::nil);
+				if (is_pair()) {
+					buf << "(" << first->to_string() << " . " << last->to_string() << ")";
+					break;
+				}
 				buf << "(";
 				Object* curr = this;
 				while (curr->first != NULL) {
 					buf << curr->first->to_string(false);
 					if (curr->last != NULL) {
+						if (curr->last->is_pair()) {
+							buf << " " << curr->last->first->to_string()
+								<< " . " << curr->last->last->to_string() << ")";
+							break;
+						}
 						buf << " ";
 						curr = curr->last;
 					}
@@ -125,16 +137,20 @@ std::string Object::to_string(bool human) {
 			// procedure stringifier
 		case value::procedure:
 			if (code->type == vm::bc_binding) {
-				buf << "<procedure binding " << code->name << ">";
+				buf << "<procedure " << &code->binding << ">";
 			} else if (code->type == vm::bc_normal) {
 				buf << code->lambda->to_string();
 			}
 			break;
 	}
 
+	std::string str = buf.str();
 
-	return buf.str();
+	return str;
 }
+
+
+
 
 
 #define BIN_CALL(name, op) \
@@ -270,21 +286,21 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						if (name->type != value::ident)
 							throw "macro definition requires an identifier as a name";
 
-						macro::Expansion mac;
+						macro::Expansion *mac = new macro::Expansion();
 						// get the name from the name argument
-						mac.name = name->to_string();
+						mac->name = name->to_string();
 						// because the last in the arg list could be NULL, (no args)
 						// we have to conditionally parse the arguments
 						arg = arg->last;
 						if (arg != NULL) {
-							mac.args = *value::parse_fn_args(*arg);
+							mac->args = *value::parse_fn_args(*arg);
 						} else {
-							mac.args = std::vector<Argument>();
+							mac->args = std::vector<Argument>();
 						}
 
 
-						mac.body = *body;
-						machine->macros[mac.name] = mac;
+						mac->body = body;
+						machine->macros[name->to_string()] = mac;
 
 						return;
 					}
@@ -299,6 +315,8 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						proc->type = value::procedure;
 						proc->code = new vm::Bytecode();
 
+						// std::cout << to_string() << "\n";
+
 						proc->args = value::parse_fn_args(*arglist);
 
 						auto expr = operator[](2);
@@ -306,7 +324,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						proc->code->push(OP_RETURN);
 						proc->code->lambda = new value::Object(*this);
 
-						vm::Instruction inst(OP_PUSH_RAW);
+						vm::Instruction inst(OP_PUSH_FN);
 						inst.object = proc;
 						bc->push(inst);
 						return;
@@ -376,19 +394,22 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 				}
 
-				const char* callname = first->to_string().c_str();
+				std::string callstr = first->to_string();
+				const char* callname = callstr.c_str();
 
 				// check if there is a macro for this function call
-				if (machine->macros.count(first->to_string())) {
+				if (machine->macros.count(callstr)) {
 					// construct an argument list for the expansion
 					std::vector<value::Object*> args;
 					int len = length();
 					for (int i = 1; i < len; i++) {
 						args.push_back(operator[](i));
 					}
-					auto macro = machine->macros[callname];
+					auto *macro = machine->macros[callstr];
+					if (macro == NULL)
+						throw "macro expansion exists but wasn't found. (NULL after hashtable lookup). ask a dev";
 					// expand and compile the macro
-					auto expansion = macro.expand(machine, args, sc);
+					auto expansion = macro->expand(machine, args, sc);
 					expansion->compile(machine, sc, bc);
 					return;
 				}
@@ -449,6 +470,13 @@ bool Object::is_call(const char* name) {
 	return true;
 }
 
+bool Object::is_pair() {
+	if (last == NULL) last = new value::Object();
+	if (type != value::list) return false;
+	if (last->type == value::nil || last->type == value::list) return false;
+	return true;
+}
+
 void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* bc) {
 
 	// quasi-quote handles lists specially cause it has to check if it is a call to
@@ -456,7 +484,7 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 	if (type == value::list && first != NULL) {
 
 		if (is_call("unquote")) {
-			value::Object *u = m->eval(*last->first, sc);
+			value::Object *u = m->eval(last->first, sc);
 			bc->push(OP_PUSH_RAW).object = u;
 			return;
 		}
@@ -468,7 +496,7 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 		for (int i = 0; i < len; i++) {
 			auto *elem = operator[](i);
 			if (elem->is_call("unquote-splicing")) {
-				value::Object *u = m->eval(*elem->operator[](1), sc);
+				value::Object *u = m->eval(elem->operator[](1), sc);
 				if (u->type == value::list) {
 					int ulen = u->length();
 					consc += ulen-1;
@@ -590,8 +618,10 @@ std::vector<Argument>* value::parse_fn_args(value::Object list) {
 				Argument a;
 				a.name = strdup(arg.string);
 				args->push_back(a);
-			} else
+			} else {
+				std::cout << list.to_string() << "\n";
 				throw "Syntax Error: argument list in function must be idents or keywords";
+			}
 		}
 	} else if (list.type == value::ident) {
 		Argument a;

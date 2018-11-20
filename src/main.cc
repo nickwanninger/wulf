@@ -129,9 +129,9 @@ void* operator new[](size_t size) {
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
-	//free_fn(ptr);
+	free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
-	//free_fn(ptr);
+	free_fn(ptr);
 }
 

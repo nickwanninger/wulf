@@ -27,21 +27,23 @@
 (def (macroexpand exp) (syscall 3 exp))
 
 
+(defmacro (fn* args :rest body)
+  ,(fn ,args (do ,@body)))
+
+
 (defmacro (stdproc id bname)
   `(def ,id (proc-binding "/usr/local/lib/wulf/stdbind.so" ,bname)))
 
 
 ;; --------------- MATH ----------------
 
-
 (stdproc + "add")
 (stdproc - "sub")
 (stdproc * "mul")
 (stdproc / "divide")
 (stdproc mod "mod")
+
 (stdproc pow "wulf_pow")
-
-
 (stdproc sqrt "wulf_sqrt")
 (stdproc cos "wulf_cos")
 (stdproc sin "wulf_sin")
@@ -63,7 +65,18 @@
   (if (= x 0) x (/ x (abs x))))
 
 
-;; -------------------------------------
+;; --------------- LIST BINDINGS -----------------
+
+(stdproc cons "cons")
+(stdproc car "car")
+(stdproc first "car")
+(stdproc cdr "cdr")
+(stdproc rest "cdr")
+
+;; -----------------------------------------------
+
+
+
 
 (def (nil? x) (= x nil))
 (def (true? x) (not (= x nil)))
@@ -79,17 +92,8 @@
 
 ;; -------------------------------------
 
-(def (cons a b) (syscall 24 (list a b)))
 (def (eval stmt) (syscall 2 stmt))
 (def (apply f a) (eval (cons f a)))
-
-;; -------------------------------------
-
-(def (car l) (syscall 19 l))
-(def (cdr l) (syscall 20 l))
-
-(def (first l) (syscall 19 l))
-(def (rest l) (syscall 20 l))
 
 ;; -------------------------------------
 
@@ -130,9 +134,13 @@
 (defmacro (fn* args :rest body)
   `(fn ,args (do ,@body)))
 
+(defmacro (defn name args :rest body)
+  `(def ,name (fn ,args (do ,@body))))
 
+
+
+(stdproc puts "wulf_puts")
 ;; put mappings to printing systemcalls
-(def (puts m) (syscall 7 m))
 (def (print x) (do (puts x) (puts "\n")))
 (def (prins :rest args)
   (do
@@ -212,6 +220,9 @@
   (if (nil? l)
     '()
     (append (reverse (rest l)) (list (first l)))))
+
+
+
 (def (map f l)
   (if (not (nil? l))
     (cons (f (first l))

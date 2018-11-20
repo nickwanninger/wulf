@@ -98,13 +98,13 @@ namespace vm {
 		public:
 			value::Object* nilval;
 			value::Object* trueval;
-			std::map<std::string, macro::Expansion> macros;
+			std::map<std::string, macro::Expansion*> macros;
 			bool debug = false;
 			Stack* stack;
 			State* state;
 			Machine();
 			void eval(Bytecode, scope::Scope*);
-			value::Object *eval(value::Object, scope::Scope*);
+			value::Object *eval(value::Object*, scope::Scope*);
 			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object*);
 	};
 
