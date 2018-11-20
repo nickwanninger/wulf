@@ -65,10 +65,7 @@ void Object::operator delete(void* ptr) {
 
 
 
-
-
-std::string Object::to_string(bool human) {
-	std::ostringstream buf;
+void Object::write_stream(std::ostream & buf, bool human) {
 
 	switch (type) {
 		case unknown:
@@ -77,7 +74,10 @@ std::string Object::to_string(bool human) {
 			break;
 		case value::list: {
 
-				if (first == NULL) return "()";
+				if (first == NULL) {
+					buf << "()";
+					return;
+				}
 
 				if (last == NULL) last = new value::Object(value::nil);
 				if (is_pair()) {
@@ -91,17 +91,15 @@ std::string Object::to_string(bool human) {
 					if (curr->last != NULL) {
 						if (curr->last->is_pair()) {
 							buf << " " << curr->last->first->to_string()
-								<< " . " << curr->last->last->to_string() << ")";
+								<< " . " << curr->last->last->to_string();
 							break;
 						}
-						buf << " ";
+						if (curr->last->first != NULL)
+							buf << " ";
 						curr = curr->last;
 					}
 				}
-				std::string str = buf.str();
-				str.pop_back();
-				str += ")";
-				return str;
+				buf << ")";
 			}; break;
 
 		case value::keyword:
@@ -143,7 +141,14 @@ std::string Object::to_string(bool human) {
 			}
 			break;
 	}
+}
 
+
+
+std::string Object::to_string(bool human) {
+	std::ostringstream buf;
+
+	write_stream(buf, human);
 	std::string str = buf.str();
 
 	return str;
@@ -659,3 +664,8 @@ void value::argument_scope_expand(std::vector<Argument> args, std::vector<value:
 
 
 
+
+
+value::Object *value::copy(value::Object *o) {
+	return new value::Object(*o);
+}

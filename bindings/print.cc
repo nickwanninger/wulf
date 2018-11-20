@@ -3,7 +3,8 @@
 
 wulf_binding(wulf_puts) {
 	if (argc != 1) throw "puts requires one argument";
-	std::cout << argv[0]->to_string(true);
+
+	argv[0]->write_stream(std::cout, true);
 	return new value::Object();
 }
 

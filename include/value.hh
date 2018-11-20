@@ -50,14 +50,14 @@ namespace value {
 	 * the Type enum is a listing of various types an object can embody
 	 */
 	enum Type {
-		unknown,
-		list,
-		ident,
-		string,
-		number,
-		procedure,
-		keyword,
-		nil,
+		unknown, // 0
+		list,    // 1
+		ident,   // 2
+		string,  // 3
+		number,  // 4
+		procedure, // 5
+		keyword, // 6
+		nil,     // 7
 	};
 
 
@@ -98,6 +98,7 @@ namespace value {
 
 			void* operator new(size_t);
 			void operator delete(void*);
+			void write_stream(std::ostream & stream, bool human = false);
 			std::string to_string(bool human = false);
 
 			// return if the object is a call to a function name (used in the compiler)
@@ -111,6 +112,9 @@ namespace value {
 			bool is_pair();
 			Object* operator[] (int);
 	};
+
+
+	Object *copy(Object*);
 
 	typedef value::Object* (*bind_func_t)(int, value::Object**, State*);
 

@@ -112,7 +112,7 @@ void Stack::resize(long newsize) {
 
 
 long Stack::push(stackval val) {
-	val = new value::Object(*val);
+	// val = new value::Object(*val);
 	//
 	// std::cout << "push: " << val << "\n";
 	set(index++, val);
@@ -360,8 +360,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				break;
 
 			case OP_PUSH_RAW: {
-					auto *obj = in.object;
-					stack->push(obj);
+					// when pushing raw, make sure to copy the argument
+					stack->push(value::copy(in.object));
 					pc++;
 				}; break;
 
@@ -662,7 +662,7 @@ void vm::Machine::handle_syscall(
 					throw "attempt to car non-list";
 				}
 			} else {
-				stack->push(new value::Object(*lst->first));
+				stack->push(value::copy(lst->first));
 			}
 		}; break;
 

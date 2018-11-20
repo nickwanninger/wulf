@@ -176,7 +176,9 @@ void State::eval(char* source) {
 				scope->root->set(name.str(), top);
 				repl_index++;
 				// if (top->type != value::nil)
-				std::cout << "\x1B[90m" << name.str() << ": " << KGRN << top->to_string() << RST << "\n";
+				std::cout << "\x1B[90m" << name.str() << ": " << KGRN;
+				top->write_stream(std::cout, false);
+				std::cout << RST << "\n";
 			}
 		}
 	}

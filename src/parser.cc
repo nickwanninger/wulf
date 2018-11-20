@@ -21,7 +21,8 @@
 #include <wulf.hh>
 #include <scanner.hh>
 #include <parser.hh>
-
+#include <string.h>
+#include <stdio.h>
 
 Parser::Parser(std::vector<Token> toks) {
 	tokens = toks;
@@ -96,12 +97,29 @@ value::Object* Parser::parse_list() {
 		items.push_back(node);
 	}
 
-	// the loop below converts a list (1 2 3) into
-	// the list (1 . (2 . (3 . ()))) as is common
+
+
+	value::Object *list = new value::Object(value::list);
+
+
+	unsigned len = items.size();
+	unsigned last_i = len - 1;
 	auto *curr = obj;
-	for (auto *object : items) {
-		auto *lst = new value::Object(value::list);
-		curr->first = object;
+	for (unsigned i = 0; i < len; i++) {
+		value::Object *lst = new value::Object(value::list);
+
+		curr->first = items[i];
+
+		if (i+1 <= last_i && items[i+1]->type == value::ident && strcmp(items[i+1]->string,".") == 0) {
+			if (i+1 != last_i-1) throw "illegal end of dotted list";
+			curr->last = items[last_i];
+			if (curr->last->type == value::nil) {
+				curr->last->type = value::list;
+				curr->last->first = NULL;
+			}
+			break;
+		}
+
 		curr->last = lst;
 		curr = lst;
 	}
@@ -112,13 +130,6 @@ value::Object* Parser::parse_list() {
 	// step forward after the last right paren in the list
 	next();
 
-	if (obj->length() == 3) {
-		value::Object *middle = obj->operator[](1);
-		value::Object *last = obj->operator[](2);
-		if (middle->type == value::ident && strcmp(middle->string, ".") == 0) {
-			obj->last = last;
-		}
-	}
 	return obj;
 }
 
@@ -140,6 +151,9 @@ value::Object* Parser::parse_ident() {
 	requires(TOK_IDENTIFIER);
 	auto obj = new value::Object(tok.value);
 	obj->type = value::ident;
+	if (!strcmp(obj->string, "nil")) {
+		obj->type = value::nil;
+	}
 	next();
 	return obj;
 }

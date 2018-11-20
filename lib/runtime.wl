@@ -75,7 +75,7 @@
 
 ;; -----------------------------------------------
 
-
+(stdproc setf "setf")
 
 
 (def (nil? x) (= x nil))
@@ -88,7 +88,6 @@
 (def (string? n) (= (type n) :string))
 (def (procedure? n) (= (type n) :procedure))
 (def (keyword? n) (= (type n) :keyword))
-
 
 ;; -------------------------------------
 

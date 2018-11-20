@@ -63,16 +63,3 @@
     (fib-iter (+ a b) a (- count 1))))
 
 ; (def (fib n) (fib-iter 1 0 n))
-
-
-(def (thing n)
-  (do
-    (print n)
-    (thing (inc n))))
-
-
-
-(def (make-counter)
-  (let ((count 0))
-    (fn (x) (set! count (+ count x)))))
-
