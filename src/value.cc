@@ -74,29 +74,29 @@ void Object::write_stream(std::ostream & buf, bool human) {
 			break;
 		case value::list: {
 
-				if (first == NULL) {
+				if (car == NULL) {
 					buf << "()";
 					return;
 				}
 
-				if (last == NULL) last = new value::Object(value::nil);
+				if (cdr == NULL) cdr = new value::Object(value::nil);
 				if (is_pair()) {
-					buf << "(" << first->to_string() << " . " << last->to_string() << ")";
+					buf << "(" << car->to_string() << " . " << cdr->to_string() << ")";
 					break;
 				}
 				buf << "(";
 				Object* curr = this;
-				while (curr->first != NULL) {
-					buf << curr->first->to_string(false);
-					if (curr->last != NULL) {
-						if (curr->last->is_pair()) {
-							buf << " " << curr->last->first->to_string()
-								<< " . " << curr->last->last->to_string();
+				while (curr->car != NULL) {
+					buf << curr->car->to_string(false);
+					if (curr->cdr != NULL) {
+						if (curr->cdr->is_pair()) {
+							buf << " " << curr->cdr->car->to_string()
+								<< " . " << curr->cdr->cdr->to_string();
 							break;
 						}
-						if (curr->last->first != NULL)
+						if (curr->cdr->car != NULL)
 							buf << " ";
-						curr = curr->last;
+						curr = curr->cdr;
 					}
 				}
 				buf << ")";
@@ -165,7 +165,7 @@ std::string Object::to_string(bool human) {
 #define UNARY_CALL(name, op) \
 	if (!strcmp(name, callname)) { if (arg_count == 1) {bc->push(vm::Instruction(op)); return; } else { throw "unary operator requires one argument"; } }
 
-#define ifcall(method) if (!strcmp(first->string, #method))
+#define ifcall(method) if (!strcmp(car->string, #method))
 
 
 void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
@@ -181,8 +181,8 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 		case value::list: {
 
 				if (length() == 0) throw "invalid syntax ()";
-				// first check if it's a special call or not. (quote, lambda, etc..)
-				if (first->type == value::ident) {
+				// car check if it's a special call or not. (quote, lambda, etc..)
+				if (car->type == value::ident) {
 
 					ifcall(set!) {
 						if (length() != 3) throw "call to set! requires 2 argumenst";
@@ -198,31 +198,31 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 
 					ifcall(def) {
-						if (last->first == NULL || last->last->first == NULL) throw "call to def requires at least two arguments";
-						auto *name = last->first;
+						if (cdr->car == NULL || cdr->cdr->car == NULL) throw "call to def requires at least two arguments";
+						auto *name = cdr->car;
 
 						// if the name is a list, I have to convert the syntactical sugar to
 						// a more usable syntax with lambdas
 						if (name->type == value::list) {
 							// the following code is quite spooky. plz be careful.
 							auto lambda = *newlist();
-							if (name->first->type != value::ident)
-								throw "call to def with function declaration syntax requires a function name as the first argument to the list";
+							if (name->car->type != value::ident)
+								throw "call to def with function declaration syntax requires a function name as the car argument to the list";
 							lambda.type = value::list;
-							lambda.first = new value::Object("fn");
-							lambda.first->type = value::ident;
-							lambda.last = new value::Object(value::list);
-							lambda.last->first = name->last;
-							lambda.last->last = new value::Object();
-							lambda.last->last->first = last->last->first;
-							lambda.last->last->last = new value::Object();
-							last->last->first = new value::Object(lambda);
-							last->first = name->first;
-							name = name->first;
+							lambda.car = new value::Object("fn");
+							lambda.car->type = value::ident;
+							lambda.cdr = new value::Object(value::list);
+							lambda.cdr->car = name->cdr;
+							lambda.cdr->cdr = new value::Object();
+							lambda.cdr->cdr->car = cdr->cdr->car;
+							lambda.cdr->cdr->cdr = new value::Object();
+							cdr->cdr->car = new value::Object(lambda);
+							cdr->car = name->car;
+							name = name->car;
 						}
 
 						if (name->type == value::ident) {
-							auto *val = last->last->first;
+							auto *val = cdr->cdr->car;
 							val->compile(machine, sc, bc);
 							auto store = vm::Instruction(OP_STORE_LOCAL);
 							store.string = name->string;
@@ -251,16 +251,16 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 					// check for quote
 					ifcall(quote) {
-						if (last->first == NULL) throw "call to quote must have one argument";
+						if (cdr->car == NULL) throw "call to quote must have one argument";
 						vm::Instruction inst(OP_PUSH_RAW);
 						inst.opcode = OP_PUSH_RAW;
-						inst.object = last->first;
+						inst.object = cdr->car;
 						bc->push(inst);
 						return;
 					}
 
 					ifcall(quasiquote) {
-						last->first->compile_quasiquote(machine, sc, bc);
+						cdr->car->compile_quasiquote(machine, sc, bc);
 						return;
 					}
 
@@ -294,9 +294,9 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						macro::Expansion *mac = new macro::Expansion();
 						// get the name from the name argument
 						mac->name = name->to_string();
-						// because the last in the arg list could be NULL, (no args)
+						// because the cdr in the arg list could be NULL, (no args)
 						// we have to conditionally parse the arguments
-						arg = arg->last;
+						arg = arg->cdr;
 						if (arg != NULL) {
 							mac->args = *value::parse_fn_args(*arg);
 						} else {
@@ -312,9 +312,9 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 					ifcall(fn) {
 
-						if (last->first == NULL) throw "'fn' call requires more arguments";
+						if (cdr->car == NULL) throw "'fn' call requires more arguments";
 						if (length() == 2) throw "'fn' call missing body";
-						auto *arglist = last->first;
+						auto *arglist = cdr->car;
 
 						auto proc = new value::Object();
 						proc->type = value::procedure;
@@ -336,12 +336,12 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 
 					ifcall(exit) {
-						if (last->first == NULL) {
+						if (cdr->car == NULL) {
 							vm::Instruction in(OP_PUSH_NUM);
 							in.number = 0;
 							bc->push(in);
 						} else {
-							last->first->compile(machine, sc, bc);
+							cdr->car->compile(machine, sc, bc);
 						}
 						bc->push(OP_EXIT);
 						return;
@@ -358,8 +358,8 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 
 					ifcall(intern) {
-						if (last->first == NULL) throw "call to intern requires an argument";
-						last->first->compile(machine, sc, bc);
+						if (cdr->car == NULL) throw "call to intern requires an argument";
+						cdr->car->compile(machine, sc, bc);
 						bc->push(OP_INTERN);
 						return;
 					}
@@ -377,7 +377,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						// push a branch onto the bytecode stack and keep a reference to it.
 						// we'll wanna update this branch instruction's offset to the location
 						// of the false code.
-						// the first thing we do is push a nop to the jump index
+						// the car thing we do is push a nop to the jump index
 						// we will update it's index later on.
 						vm::Instruction branch(OP_JUMP_FALSE);
 						long long bri = bc->instructions.size();
@@ -399,7 +399,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 				}
 
-				std::string callstr = first->to_string();
+				std::string callstr = car->to_string();
 				const char* callname = callstr.c_str();
 
 				// check if there is a macro for this function call
@@ -420,8 +420,8 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				}
 
 				int arg_count = 0;
-				for (auto *arg = last; arg->type == value::list && arg->first != NULL; arg = arg->last) {
-					arg->first->compile(machine, sc, bc);
+				for (auto *arg = cdr; arg->type == value::list && arg->car != NULL; arg = arg->cdr) {
+					arg->car->compile(machine, sc, bc);
 					arg_count++;
 				}
 
@@ -434,15 +434,15 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				// and if it does, it won't bother looking up the function at runtime
 				try {
 
-					value::Object *calling = sc->root->find(first->to_string());
+					value::Object *calling = sc->root->find(car->to_string());
 					if (calling->type == value::procedure) {
 						vm::Instruction in = OP_PUSH_RAW;
 						in.object = calling;
 						bc->push(in);
 					}
 				} catch (std::string msg) {
-					// wasn't found, ignore it and push the first argumen to the stack
-					first->compile(machine, sc, bc);
+					// wasn't found, ignore it and push the car argumen to the stack
+					car->compile(machine, sc, bc);
 				}
 				auto call = vm::Instruction(OP_CALL);
 				call.whole = arg_count;
@@ -469,16 +469,16 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 bool Object::is_call(const char* name) {
 	if (type != value::list) return false;
-	if (first == NULL) return false;
-	if (first->type != value::ident) return false;
-	if (strcmp(first->string, name)) return false;
+	if (car == NULL) return false;
+	if (car->type != value::ident) return false;
+	if (strcmp(car->string, name)) return false;
 	return true;
 }
 
 bool Object::is_pair() {
-	if (last == NULL) last = new value::Object();
+	if (cdr == NULL) cdr = new value::Object();
 	if (type != value::list) return false;
-	if (last->type == value::nil || last->type == value::list) return false;
+	if (cdr->type == value::nil || cdr->type == value::list) return false;
 	return true;
 }
 
@@ -486,10 +486,10 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 
 	// quasi-quote handles lists specially cause it has to check if it is a call to
 	// unquote or unquote-splicing
-	if (type == value::list && first != NULL) {
+	if (type == value::list && car != NULL) {
 
 		if (is_call("unquote")) {
-			value::Object *u = m->eval(last->first, sc);
+			value::Object *u = m->eval(cdr->car, sc);
 			bc->push(OP_PUSH_RAW).object = u;
 			return;
 		}
@@ -535,9 +535,9 @@ size_t Object::length() {
 	size_t len = 0;
 
 	Object* curr = this;
-	while (curr->last != NULL) {
-		if (curr->first != NULL) len++;
-		curr = curr->last;
+	while (curr->cdr != NULL) {
+		if (curr->car != NULL) len++;
+		curr = curr->cdr;
 	}
 	return len;
 }
@@ -545,10 +545,10 @@ size_t Object::length() {
 Object* Object::operator[](int index) {
 	size_t len = 0;
 	Object* curr = this;
-	while (curr->last != NULL) {
-		if (len == index) return curr->first;
-		if (curr->first != NULL) len++;
-		curr = curr->last;
+	while (curr->cdr != NULL) {
+		if (len == index) return curr->car;
+		if (curr->car != NULL) len++;
+		curr = curr->cdr;
 	}
 	return NULL;
 }
@@ -558,13 +558,13 @@ void Object::append(value::Object *obj) {
 	if (type != value::list) throw "unable to push_back to non-list";
 	auto curr = this;
 
-	while (curr->last != NULL) {
-		curr = curr->last;
+	while (curr->cdr != NULL) {
+		curr = curr->cdr;
 	}
 
-	curr->last = new value::Object(value::list);
-	curr->last->type = value::list;
-	curr->first = obj;
+	curr->cdr = new value::Object(value::list);
+	curr->cdr->type = value::list;
+	curr->car = obj;
 }
 
 
@@ -614,7 +614,7 @@ std::vector<Argument>* value::parse_fn_args(value::Object list) {
 					a.name = strdup(arg.string);
 					args->push_back(a);
 					if (i < len - 1) {
-						throw ":rest argument must be the last argument";
+						throw ":rest argument must be the cdr argument";
 					}
 				} else
 					throw "unknown keyword used in argument list";

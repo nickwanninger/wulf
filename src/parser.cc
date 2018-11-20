@@ -108,19 +108,19 @@ value::Object* Parser::parse_list() {
 	for (unsigned i = 0; i < len; i++) {
 		value::Object *lst = new value::Object(value::list);
 
-		curr->first = items[i];
+		curr->car = items[i];
 
 		if (i+1 <= last_i && items[i+1]->type == value::ident && strcmp(items[i+1]->string,".") == 0) {
 			if (i+1 != last_i-1) throw "illegal end of dotted list";
-			curr->last = items[last_i];
-			if (curr->last->type == value::nil) {
-				curr->last->type = value::list;
-				curr->last->first = NULL;
+			curr->cdr = items[last_i];
+			if (curr->cdr->type == value::nil) {
+				curr->cdr->type = value::list;
+				curr->cdr->car = NULL;
 			}
 			break;
 		}
 
-		curr->last = lst;
+		curr->cdr = lst;
 		curr = lst;
 	}
 
@@ -137,13 +137,13 @@ value::Object* Parser::parse_list() {
 value::Object* Parser::parse_quote_variant(const char* variant) {
 	auto *obj = new value::Object();
 	obj->type = value::list;
-	obj->first = new value::Object(variant);
-	obj->first->type = value::ident;
+	obj->car = new value::Object(variant);
+	obj->car->type = value::ident;
 	next();
-	obj->last = new value::Object();
-	obj->last->type = value::list;
-	obj->last->first = parse_expr();
-	obj->last->last = new value::Object(value::list);
+	obj->cdr = new value::Object();
+	obj->cdr->type = value::list;
+	obj->cdr->car = parse_expr();
+	obj->cdr->cdr = new value::Object(value::list);
 	return obj;
 }
 

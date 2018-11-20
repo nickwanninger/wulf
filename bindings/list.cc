@@ -5,8 +5,8 @@ wulf_binding(cons) {
 	if (argc != 2) throw "cons requires 2 arguments";
 
 	value::Object *result = new value::Object(value::list);
-	result->first = argv[0];
-	result->last = argv[1];
+	result->car = argv[0];
+	result->cdr = argv[1];
 	return result;
 }
 
@@ -20,7 +20,7 @@ wulf_binding(car) {
 			throw "attempt to car non-list";
 		}
 	}
-	return lst->first;
+	return lst->car;
 }
 
 
@@ -34,13 +34,13 @@ wulf_binding(cdr) {
 			throw "attempt to cdr non-list";
 		}
 	} else {
-		if (lst->last == NULL) {
+		if (lst->cdr == NULL) {
 			return new value::Object();
 		} else {
-			if (lst->last->type == value::list && lst->last->length() == 0) {
+			if (lst->cdr->type == value::list && lst->cdr->length() == 0) {
 				return new value::Object();
 			} else {
-				return lst->last;
+				return lst->cdr;
 			}
 		}
 	}

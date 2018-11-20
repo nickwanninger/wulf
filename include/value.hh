@@ -72,8 +72,8 @@ namespace value {
 				double number;
 				char* string;
 				struct {
-					Object* first = NULL;
-					Object* last = NULL;
+					Object* car = NULL;
+					Object* cdr = NULL;
 				};
 				/*
 				 * a procedure just stores a listing of the bytecode used to

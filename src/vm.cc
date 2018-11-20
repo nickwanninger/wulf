@@ -479,8 +479,8 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 						auto lst = stack->pop();
 						auto val = stack->pop();
 						auto *newlist = new value::Object(value::list);
-						newlist->first = val;
-						newlist->last = lst;
+						newlist->car = val;
+						newlist->cdr = lst;
 						stack->push(newlist);
 						pc++;
 					}; break;
@@ -597,10 +597,10 @@ void vm::Machine::handle_syscall(
 		case SYS_MACROEXPAND: {
 				if (arg->type != value::list) throw "unable to macroexpand a non-list";
 				if (arg->length() == 0) throw "unble to macroexpand empty list";
-				if (arg->first->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
-				const char* callname = arg->first->to_string().c_str();
+				if (arg->car->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
+				const char* callname = arg->car->to_string().c_str();
 
-				if (macros.count(arg->first->to_string())) {
+				if (macros.count(arg->car->to_string())) {
 					// construct an argument list for the expansion
 					std::vector<value::Object*> args;
 					int len = arg->length();
@@ -662,7 +662,7 @@ void vm::Machine::handle_syscall(
 					throw "attempt to car non-list";
 				}
 			} else {
-				stack->push(value::copy(lst->first));
+				stack->push(value::copy(lst->car));
 			}
 		}; break;
 
@@ -675,13 +675,13 @@ void vm::Machine::handle_syscall(
 					throw "attempt to cdr non-list";
 				}
 			} else {
-				if (lst->last == NULL) {
+				if (lst->cdr == NULL) {
 					stack->push(nilval);
 				} else {
-					if (lst->last->length() == 0) {
+					if (lst->cdr->length() == 0) {
 						stack->push(nilval);
 					} else {
-						stack->push(lst->last);
+						stack->push(lst->cdr);
 					}
 				}
 			}
