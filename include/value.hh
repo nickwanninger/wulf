@@ -61,7 +61,11 @@ namespace value {
 
 	class objref {
 		public:
-			value::Object *ptr;
+			union {
+				value::Object *ptr;
+				// value::Object val;
+			};
+
 			objref();
 			objref(value::Object*);
 			~objref();
@@ -88,11 +92,14 @@ namespace value {
 			 * a union for the various data types that can be
 			 * stored in an Object
 			 */
-			obj car;
-			obj cdr;
 			union {
 				double number;
 				char* string;
+
+				struct {
+					obj car;
+					obj cdr;
+				};
 
 				/*
 				 * a procedure just stores a listing of the bytecode used to
@@ -153,6 +160,8 @@ namespace value {
 	obj newobj(double);
 	obj newobj(char*);
 	obj newobj(const char*);
+
+	obj newident(const char*);
 
 	std::vector<Argument>* parse_fn_args(value::obj);
 	void argument_scope_expand(std::vector<Argument>, std::vector<value::obj>, scope::Scope*);

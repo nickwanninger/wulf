@@ -54,10 +54,9 @@
 
 (def (abs x) (if (> x 0) x (- 0 x)))
 
-(def (= a b) (syscall 25 (list a b)))
-(def (< a b) (syscall 26 (list a b)))
-
-(def (> a b) (not (or (< a b) (= a b))))
+(stdproc = "wulf_equal")
+(stdproc < "wulf_lessthan")
+(stdproc > "wulf_greaterthan")
 (def (>= a b) (not (< a b)))
 (def (<= a b) (not (> a b)))
 
@@ -153,7 +152,6 @@
 (def (list :rest l) l)
 
 (def (type x) (syscall 9 x))
-(def (sh cmd) (syscall 10 cmd))
 
 (def (inc a) (+ a 1))
 (def (dec a) (- a 1))
@@ -161,24 +159,6 @@
 ;; define the "truth" value
 (def t 't)
 
-
-
-;; convert any object v to a string
-(def (str v) (syscall 31 v))
-(def (string-length s) (syscall 27 s))
-(def (string-concat s1 s2) (syscall 30 (list s1 s2)))
-
-
-
-
-
-
-;; return a random number between zero and one
-(def (rand) (syscall 22 nil))
-
-;; return a random number between l and u
-(def (rand-range l u)
-  (+ (* (rand) (- u l)) l))
 
 ;; find the length of any list
 (def (len l)

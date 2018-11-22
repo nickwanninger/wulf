@@ -540,25 +540,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 }
 
 
-std::string eval_shell_cmd(char* cmdc) {
-	std::string cmd = cmdc;
-	cmd += " 2>&1";
-	std::string data;
-
-	const int max_buffer = 256;
-	char buffer[max_buffer];
-
-	FILE* stream = popen(cmd.c_str(), "r");
-	if (stream) {
-		while (!feof(stream)) {
-			if (fgets(buffer, max_buffer, stream) != NULL) data += buffer;
-		}
-		pclose(stream);
-	}
-	return data;
-}
-
-
 #define OP_BINARY(op) {                                             \
 	auto b = arg[1];                                                  \
 	auto a = arg[0];                                                  \
@@ -598,9 +579,9 @@ void vm::Machine::handle_syscall(
 				if (arg->type != value::list) throw "unable to macroexpand a non-list";
 				if (arg->length() == 0) throw "unble to macroexpand empty list";
 				if (arg->car->type != value::ident) throw "unable to macroexpand list where first element is not an ident";
-				const char* callname = arg->car->to_string().c_str();
+				const char* callname = arg->car->string;
 
-				if (macros.count(arg->car->to_string())) {
+				if (macros.count(std::string(callname))) {
 					// construct an argument list for the expansion
 					std::vector<value::obj> args;
 					int len = arg->length();
@@ -615,15 +596,11 @@ void vm::Machine::handle_syscall(
 				} else throw "unable to find macro to expand";
 		}; break;
 
-		case SYS_PRINT: {
-			std::cout << arg->to_string(true);
-		}; break;
-
 		case SYS_LOAD: {
 			if (arg->type != value::string) throw "syscall load requires a string filepath";
 			bool repls = state->repl;
 			state->repl = false;
-			char* path = ccharcopy(arg->to_string(true).c_str());
+			char* path = ccharcopy(arg->string);
 			state->eval_file(path);
 			state->repl = repls;
 		}; break;
@@ -642,14 +619,6 @@ void vm::Machine::handle_syscall(
 			TYPEOFVALUE(keyword);
 			TYPEOFVALUE(nil);
 			stack->push(type_kw);
-		}; break;
-
-		case SYS_SHELL: {
-			if (arg->type != value::string) throw "shell systemcall requires string command to be executed with `sh -c '...'`";
-			std::string data = eval_shell_cmd(arg->string);
-			value::obj obj = value::newobj(value::string);
-			obj->string = ccharcopy(data.c_str());
-			stack->push(obj);
 		}; break;
 
 
@@ -693,92 +662,6 @@ void vm::Machine::handle_syscall(
 			num->number = x;
 			stack->push(num);
 		}; break;
-
-		case SYS_EQUAL: {
-				value::obj a = arg->operator[](0);
-				value::obj b = arg->operator[](1);
-
-				if (a->type == b->type && a->type == value::number) {
-					if (a->number == b->number) {
-						stack->push(trueval);
-					} else {
-						stack->push(nilval);
-					}
-					return;
-				}
-
-				if (a->type == value::procedure && b->type == value::procedure) {
-					if (a->code == b->code) {
-						stack->push(trueval);
-					} else {
-						stack->push(nilval);
-					}
-					return;
-				}
-				// special case nil and list comparison
-				// todo: wrap this all in an `==` overloaded operator
-				if (a->type == value::list || b->type == value::list) {
-					if (a->type == value::nil || b->type == value::nil) {
-						auto the_list = a->type == value::list ? a : b;
-						auto the_nil = a->type == value::nil ? a : b;
-						if (the_list->length() != 0) {
-							stack->push(nilval);
-						}
-					}
-				} else if (a->type != b->type || a->to_string() != b->to_string()) {
-					stack->push(nilval);
-				} else {
-					stack->push(trueval);
-				}
-			}; break;
-
-
-
-		case SYS_LT: {
-				value::obj a1 = arg->operator[](0);
-				value::obj a2 = arg->operator[](1);
-				if (a2->type != a1->type || a2->type != value::number) throw "attempt to compare two non-numbers";
-				if (a1->number < a2->number) {
-					stack->push(trueval);
-				} else {
-					stack->push(nilval);
-				}
-			}; break;
-
-
-
-		case SYS_STRCONV: {
-				value::obj str_o = value::newobj();
-				str_o->type = value::string;
-				std::string s = arg->to_string(true);
-				str_o->string = new char[s.size()+1];
-				memcpy(str_o->string, s.c_str(), s.size() + 1);
-				stack->push(str_o);
-			}; break;
-
-		case SYS_STRLEN: {
-				stack->push(value::newobj((double)arg->to_string().size()));
-			}; break;
-
-		case SYS_STRREF: {
-				stack->push(value::newobj((double)arg->to_string().size()));
-			}; break;
-
-		case SYS_STRSET: {
-				stack->push(value::newobj((double)arg->to_string().size()));
-			}; break;
-
-		case SYS_STRCAT: {
-				if (arg->operator[](0)->type != value::string || arg->operator[](0)->type != arg->operator[](1)->type) throw "string concatination requires two strings";
-				auto s = arg->operator[](0)->to_string(true) + arg->operator[](1)->to_string(true);
-				auto len = s.size();
-				value::obj str_o = value::newobj();
-				str_o->type = value::string;
-				str_o->string = new char[len+1];
-				memcpy(str_o->string, s.c_str(), len+1);
-				stack->push(str_o);
-			}; break;
-
 
 		default: {
 			stack->push(nilval);

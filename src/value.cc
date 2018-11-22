@@ -78,6 +78,13 @@ obj value::newobj(const char* str) {
 	return value::newobj(ccharcopy(str));
 }
 
+
+obj value::newident(const char* i) {
+	obj o = newobj(value::ident);
+	o->string = ccharcopy(i);
+	return o;
+}
+
 obj Object::create(Type t) {
 #ifdef CONF_USE_SMARTPTR
 	obj o = std::make_shared<value::Object>();

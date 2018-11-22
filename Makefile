@@ -68,7 +68,7 @@ src/lex.yy.cc: src/wulf.l
 
 lib/stdbind.so: bindings/*.cc
 	@printf " SO\t$@\n"
-	@clang++ -Iinclude -shared -undefined dynamic_lookup -o lib/stdbind.so bindings/*
+	@clang++ -Iinclude -shared -undefined dynamic_lookup -O3 -o lib/stdbind.so bindings/*
 
 
 lib: lib/runtime.wl lib/stdbind.so

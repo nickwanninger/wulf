@@ -59,7 +59,7 @@
 
 (def (loopthing id i)
   (do
-    (print (list id i (Yfib i)))
+    (print (list id i))
     (loopthing id (inc i))))
 
 

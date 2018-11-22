@@ -56,12 +56,9 @@ int main(int argc, char** argv) {
 	GC_INIT();
 	GC_allow_register_threads();
 #endif
-	// GC_enable_incremental();
 
 	// setup the random number generator
 	srand((unsigned int)time(nullptr));
-
-	std::shared_ptr<value::Object> a;
 
 	try {
 		bool interactive = false;
