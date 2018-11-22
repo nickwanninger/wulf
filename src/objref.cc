@@ -15,7 +15,7 @@ objref::objref(value::Object *ref) {
 objref::~objref() {
 	if (ptr != nullptr) {
 		if (ptr->release() == 0) {
-			// delete ptr;
+			delete ptr;
 		}
 	} else {
 	}
@@ -60,7 +60,7 @@ objref & objref::operator=(const objref &other) {
 			// Decrement the old reference count
 			// if reference become zero delete the old data
 			if (ptr->release() == 0) {
-				// delete ptr;
+				delete ptr;
 			}
 		}
 
