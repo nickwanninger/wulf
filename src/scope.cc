@@ -25,10 +25,10 @@ static long hashstring(const char* str);
 
 int scope_index = 0;
 /*
- * default constructor for Scope that sets the parent to NULL
+ * default constructor for Scope that sets the parent to nullptr
  */
 Scope::Scope() {
-	parent = NULL;
+	parent = nullptr;
 	root = this;
 	index = scope_index++;
 	bindings = Valmap(30);
@@ -56,22 +56,22 @@ Scope* Scope::spawn_child() {
 Bucket* Scope::find_bucket(std::string name) {
 
 	Scope *current = this;
-	while (current != NULL) {
+	while (current != nullptr) {
 		if (current->bindings.contains(name)) {
 			return current->bindings.getbucket(name);
 		}
 		current = current->parent;
 	}
 	// base case. (there wasn't a bucket)
-	return NULL;
+	return nullptr;
 }
 
 /*
  * find a variable name in the scope or check all parents
  */
-value::Object *Scope::find(std::string name) {
+value::obj Scope::find(std::string name) {
 	Bucket* buck = find_bucket(name);
-	if (buck == NULL) {
+	if (buck == nullptr) {
 		throw std::string("variable ") + name + " is not bound";
 	}
 	return buck->val;
@@ -87,16 +87,16 @@ std::string Scope::to_string() {
 /*
  * set a binding in the current scope
  */
-void Scope::set(std::string name, value::Object *val) {
+void Scope::set(std::string name, value::obj val) {
 	bindings.getbucket(name)->val = val;
 }
 
-void Scope::set(const char* name, value::Object *val) {
+void Scope::set(const char* name, value::obj val) {
 	set(std::string(name), val);
 }
 
 void Scope::set(const char* name, double val) {
-	set(name, new value::Object(val));
+	set(name, value::newobj(val));
 }
 
 void Scope::install_default_bindings() {
@@ -126,7 +126,7 @@ Valmap::Valmap(long s) {
 bool Valmap::contains(const std::string& key) {
 	long ind = hashstring(key) % bucketsize;
 	Bucket* b = buckets[ind];
-	while (b != NULL) {
+	while (b != nullptr) {
 		if (b->key == key) return true;
 		b = b->next;
 	}
@@ -136,7 +136,7 @@ bool Valmap::contains(const std::string& key) {
 Bucket* Valmap::getbucket(const std::string key) {
 	long ind = hashstring(key) % bucketsize;
 	Bucket* b = buckets[ind];
-	while (b != NULL) {
+	while (b != nullptr) {
 		if (b->key == key) {
 			return b;
 		}
@@ -151,6 +151,6 @@ Bucket* Valmap::getbucket(const std::string key) {
 	return b;
 }
 
-value::Object *Valmap::operator[](const std::string key) {
+value::obj Valmap::operator[](const std::string key) {
 	return getbucket(key)->val;
 }

@@ -24,9 +24,6 @@
 #include <scope.hh>
 #include <thread>
 #include <value.hh>
-#define GC_THREADS
-#include <gc.h>
-#include <gc/gc_cpp.h>
 #include <vm.hh>
 #include <value.hh>
 #include <parser.hh>
@@ -37,24 +34,34 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
+#define USE_GC
+
+#ifdef USE_GC
+#define GC_THREADS
+#include <gc.h>
+#include <gc/gc_cpp.h>
+#endif
+
 #define EXIT_FILE_ERROR 1
 #define STDIN_READ_SIZE 100
 
 #define PROMPT_HEADER \
-"Wulf Lisp\n" \
-"Type 'wulf/copyright', 'wulf/warranty' or, 'wulf/help' for more information"\
+	"Wulf Lisp\n" \
+	"Type 'wulf/copyright', 'wulf/warranty' or, 'wulf/help' for more information"\
 
 
 int main(int argc, char** argv) {
+
+#ifdef USE_GC
 	GC_INIT();
 	GC_allow_register_threads();
-	GC_enable_incremental();
+#endif
+	// GC_enable_incremental();
 
 	// setup the random number generator
-	srand((unsigned int)time(NULL));
+	srand((unsigned int)time(nullptr));
 
-
-
+	std::shared_ptr<value::Object> a;
 
 	try {
 		bool interactive = false;
@@ -62,8 +69,8 @@ int main(int argc, char** argv) {
 		char opt;
 		while ((opt = getopt(argc, argv, "i")) != -1) {
 			switch (opt) {
-			case 'i': interactive = true; break;
-			default:
+				case 'i': interactive = true; break;
+				default:
 					fprintf(stderr, "Usage: %s [-i] [file]\n", argv[0]);
 					exit(EXIT_FAILURE);
 			}
@@ -95,29 +102,20 @@ int main(int argc, char** argv) {
 			state->run_repl();
 		}
 
-		// run a garbage collection run
-		GC_gcollect();
-
 		delete state;
 
 	} catch (std::string err) {
 		std::cerr << "Error: " << err << "\n";
 	} catch (const char* err) {
 		std::cerr << "Error: " << err << "\n";
+	} catch (std::bad_weak_ptr err) {
+		std::cerr << err.what() << "\n";
 	}
 
 	return 0;
 }
 
-static void xfinalizer(void *obj, void *x) {
-	std::cout << "obj\n";
-}
-
-void* wulf_malloc(size_t size) {
-	void* ptr = GC_MALLOC(size);
-  GC_register_finalizer(ptr, xfinalizer, 0, 0, 0);
-	return ptr;
-}
+#ifdef USE_GC
 
 #define alloc_fn GC_MALLOC
 #define free_fn GC_FREE
@@ -135,11 +133,10 @@ void* operator new[](size_t size) {
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
-	//std::cout << "delete\n";
 	free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
-	// std::cout << "delete[]\n";
 	free_fn(ptr);
 }
 
+#endif

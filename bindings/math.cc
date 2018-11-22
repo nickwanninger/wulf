@@ -4,50 +4,50 @@
 
 wulf_binding(add) {
 	if (argc == 0) {
-		return new value::Object(0.0);
+		return value::newobj(0.0);
 	}
 	double total = 0.0;
 	for (int i = 0; i < argc; i++) {
 		if (argv[i]->type != value::number) throw "addition requires only numbers";
 		total += argv[i]->number;
 	}
-	return new value::Object(total);
+	return value::newobj(total);
 }
 
 
 wulf_binding(sub) {
 	if (argc == 0) {
-		return new value::Object(0.0);
+		return value::newobj(0.0);
 	}
 
 	for (int i = 0; i < argc; i++)
 		if (argv[i]->type != value::number) throw "subtraction requires only numbers as arguments";
 
 	if (argc == 1) {
-		return new value::Object(-argv[0]->number);
+		return value::newobj(-argv[0]->number);
 	}
 	double total = argv[0]->number;
 	for (int i = 1; i < argc; i++) total -= argv[i]->number;
 
-	return new value::Object(total);
+	return value::newobj(total);
 }
 
 wulf_binding(mul) {
 	if (argc == 0) {
-		return new value::Object(0.0);
+		return value::newobj(0.0);
 	}
 	double total = 1;
 	for (int i = 0; i < argc; i++) {
 		if (argv[i]->type != value::number) throw "multiplication requires only numbers";
 		total *= argv[i]->number;
 	}
-	return new value::Object(total);
+	return value::newobj(total);
 }
 
 
 wulf_binding(divide) {
 	if (argc == 0) {
-		return new value::Object(0.0);
+		return value::newobj(0.0);
 	}
 
 	for (int i = 0; i < argc; i++)
@@ -55,12 +55,12 @@ wulf_binding(divide) {
 			throw "division requires only numbers";
 
 	if (argc == 1) {
-		return new value::Object(1 / argv[0]->number);
+		return value::newobj(1 / argv[0]->number);
 	}
 	double total = argv[0]->number;
 	for (int i = 1; i < argc; i++) total /= argv[i]->number;
 
-	return new value::Object(total);
+	return value::newobj(total);
 }
 
 wulf_binding(mod) {
@@ -68,7 +68,7 @@ wulf_binding(mod) {
 	for (int i = 0; i < argc; i++)
 		if (argv[i]->type != value::number)
 			throw "modulus requires only numbers";
-	return new value::Object(fmod(argv[0]->number, argv[1]->number));
+	return value::newobj(fmod(argv[0]->number, argv[1]->number));
 }
 
 
@@ -79,7 +79,7 @@ wulf_binding(wulf_pow) {
 	for (int i = 0; i < argc; i++)
 		if (argv[i]->type != value::number)
 			throw "pow requires only numbers";
-	return new value::Object(pow(argv[0]->number, argv[1]->number));
+	return value::newobj(pow(argv[0]->number, argv[1]->number));
 }
 
 
@@ -87,7 +87,7 @@ wulf_binding(wulf_pow) {
 	wulf_binding(wulf_name) { \
 		if (argc != 1) throw #wulf_name " requires one argument"; \
 		if (argv[0]->type != value::number) throw #wulf_name "requires a number"; \
-		return new value::Object(fn_name(argv[0]->number)); }
+		return value::newobj(fn_name(argv[0]->number)); }
 
 
 single_math_binding(wulf_cos, cos);

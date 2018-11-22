@@ -38,10 +38,13 @@
 ;; --------------- MATH ----------------
 
 (stdproc + "add")
+
 (stdproc - "sub")
 (stdproc * "mul")
 (stdproc / "divide")
 (stdproc mod "mod")
+
+
 
 (stdproc pow "wulf_pow")
 (stdproc sqrt "wulf_sqrt")

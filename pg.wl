@@ -61,3 +61,10 @@
   (do
     (print (list id i (Yfib i)))
     (loopthing id (inc i))))
+
+
+(def (make-counter)
+  (let ((c 0))
+    (fn ()
+      (do (set! c (inc c))
+          c))))

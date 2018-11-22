@@ -33,13 +33,13 @@ using namespace vm;
 #define STACK_BASE_SIZE 64
 #define STACK_BREATHING_ROOM 20
 
-#define STACK_DEBUG
+// #define STACK_DEBUG
 
 typedef stackval* stackblock;
 
 // constructor
 Stack::Stack() {
-	stack_block_size = 32;
+	stack_block_size = 512;
 	stacksize = stack_block_size;
 	block_count = 1;
 	blocks = new stackval*[block_count];
@@ -112,7 +112,7 @@ void Stack::resize(long newsize) {
 
 
 long Stack::push(stackval val) {
-	// val = new value::Object(*val);
+	// val = value::newobj(*val);
 	//
 	// std::cout << "push: " << val << "\n";
 	set(index++, val);
@@ -213,14 +213,14 @@ Instruction & Bytecode::push(Instruction i) {
 
 Machine::Machine() {
 	stack = new Stack();
-	nilval = new value::Object();
-	trueval = new value::Object("t");
+	nilval = value::newobj();
+	trueval = value::newobj("t");
 }
 
 
 // provide a quick wrapper for evaluating an object with some scope
 //   this is used internally for the macro expansion system
-value::Object* vm::Machine::eval(value::Object *obj, scope::Scope* sc) {
+value::obj vm::Machine::eval(value::obj obj, scope::Scope* sc) {
 	vm::Bytecode bc;
 
 	obj->compile(this, sc, &bc);
@@ -276,27 +276,27 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_PUSH_NUM: {
-					auto *val = new value::Object(in.number);
+					auto val = value::newobj(in.number);
 					stack->push(val);
 					pc++;
 				} break;
 
 			case OP_PUSH_IDENT: {
-					auto *ident = new value::Object(in.string);
+					auto ident = value::newobj(in.string);
 					ident->type = value::ident;
 					stack->push(ident);
 					pc++;
 				} break;
 
 			case OP_PUSH_STR: {
-					auto *val = new value::Object(in.string);
+					auto val = value::newobj(in.string);
 					val->type = value::string;
 					stack->push(val);
 					pc++;
 				} break;
 
 			case OP_PUSH_LIST: {
-					auto *val = new value::Object();
+					auto val = value::newobj();
 					val->type = value::list;
 					stack->push(val);
 					pc++;
@@ -304,9 +304,9 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 
 			case OP_INTERN: {
-						auto *str = stack->pop();
+						auto str = stack->pop();
 						if (str->type != value::string) throw "attempt to intern non-string";
-						auto *kw = new value::Object();
+						auto kw = value::newobj();
 						kw->type = value::keyword;
 						kw->string = new char[sizeof(str->string)+2];
 						strcpy(kw->string+1, str->string);
@@ -366,20 +366,20 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_PUSH_FN: {
-					auto *fn = in.object;
+					auto fn = in.object;
 					fn->defining_scope = sc;
 					stack->push(fn);
 					pc++;
 				}; break;
 
 			case OP_PUSH_LOOKUP: {
-					value::Object *val = sc->find(in.string);
+					value::obj val = sc->find(in.string);
 					stack->push(val);
 					pc++;
 				}; break;
 
 			case OP_STORE_GLOBAL: {
-					value::Object *val = stack->pop();
+					value::obj val = stack->pop();
 					sc->root->set(in.string, val);
 					stack->push(val);
 					pc++;
@@ -414,21 +414,21 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 					if (callable->code->type == vm::bc_binding) {
 						int argc = in.whole;
-						value::Object **argv = new value::Object*[argc];
+						value::obj *argv = new value::obj[argc];
 						for (int i = argc-1; i >= 0; i--) {
 							argv[i] = stack->pop();
 						}
-						value::Object *res = callable->code->binding(argc, argv, state, sc);
+						value::obj res = callable->code->binding(argc, argv, state, sc);
 						stack->push(res);
 					} else if (callable->code->type == vm::bc_normal) {
 						// printf("defining scope: %p\n", (void*) callable.defining_scope);
 						int passedc = in.whole;
 						std::vector<value::Argument> argnames = *callable->args;
-						std::vector<value::Object*> arglist;
+						std::vector<value::obj> arglist;
 
 						// pop off the args in the right order.
 						for (i = 0; i < passedc; i++) {
-							auto *arg = stack->pop();
+							auto arg = stack->pop();
 							arglist.insert(arglist.begin(), arg);
 						}
 
@@ -478,7 +478,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 
 						auto lst = stack->pop();
 						auto val = stack->pop();
-						auto *newlist = new value::Object(value::list);
+						value::obj newlist = value::newobj(value::list);
 						newlist->car = val;
 						newlist->cdr = lst;
 						stack->push(newlist);
@@ -502,7 +502,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_NOT: {
-					auto *arg = stack->pop();
+					value::obj arg = stack->pop();
 					if (arg->type == value::nil) {
 						stack->push(trueval);
 					} else {
@@ -516,7 +516,7 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 				}; break;
 
 			case OP_JUMP_FALSE: {
-					auto *arg = stack->pop();
+					value::obj arg = stack->pop();
 					if (arg->type == value::nil)
 						pc = in.whole;
 					else pc++;
@@ -563,7 +563,7 @@ std::string eval_shell_cmd(char* cmdc) {
 	auto b = arg[1];                                                  \
 	auto a = arg[0];                                                  \
 	if (a->type == b->type && a->type == value::number) {             \
-		stack->push(value::Object(a->number op b->number));             \
+		stack->push(value::newobj(a->number op b->number));             \
 	} else {                                                          \
 		throw "attempt to perform math on two non-number values";       \
 	}                                                                 \
@@ -574,7 +574,7 @@ void vm::Machine::handle_syscall(
 		long long & pc,
 		vm::Instruction & inst,
 		int syscalli,
-		value::Object *arg) {
+		value::obj arg) {
 	// 0 = exit
 	//
 	switch (syscalli) {
@@ -602,14 +602,14 @@ void vm::Machine::handle_syscall(
 
 				if (macros.count(arg->car->to_string())) {
 					// construct an argument list for the expansion
-					std::vector<value::Object*> args;
+					std::vector<value::obj> args;
 					int len = arg->length();
 					for (int i = 1; i < len; i++) {
 						args.push_back(arg->operator[](i));
 					}
 					auto macro = macros[callname];
 					// expand and compile the macro
-					auto *expansion = macro->expand(this, args, sc);
+					value::obj expansion = macro->expand(this, args, sc);
 					stack->push(expansion);
 					return;
 				} else throw "unable to find macro to expand";
@@ -630,7 +630,7 @@ void vm::Machine::handle_syscall(
 
 		case SYS_TYPE: {
 			auto val = arg;
-			auto *type_kw = new value::Object(value::keyword);
+			value::obj type_kw = value::newobj(value::keyword);
 			type_kw->type = value::keyword;
 			using namespace value;
 			#define TYPEOFVALUE(x) if (val->type == x) {type_kw->string = ccharcopy(":"#x);}
@@ -647,7 +647,7 @@ void vm::Machine::handle_syscall(
 		case SYS_SHELL: {
 			if (arg->type != value::string) throw "shell systemcall requires string command to be executed with `sh -c '...'`";
 			std::string data = eval_shell_cmd(arg->string);
-			value::Object *obj = new value::Object(value::string);
+			value::obj obj = value::newobj(value::string);
 			obj->string = ccharcopy(data.c_str());
 			stack->push(obj);
 		}; break;
@@ -689,25 +689,14 @@ void vm::Machine::handle_syscall(
 
 		case SYS_RNG: {
 			double x = (double)rand()/(double)(RAND_MAX);
-			auto *num = new value::Object(value::number);
+			value::obj num = value::newobj(value::number);
 			num->number = x;
 			stack->push(num);
 		}; break;
 
-		case SYS_GC_COLLECT: {
-			size_t start = GC_get_heap_size();
-			GC_gcollect();
-			size_t diff = GC_get_heap_size();
-			auto *num = new value::Object(value::number);
-			num->number = diff;
-			stack->push(num);
-		}; break;
-
-
-
 		case SYS_EQUAL: {
-				auto *a = arg->operator[](0);
-				auto *b = arg->operator[](1);
+				value::obj a = arg->operator[](0);
+				value::obj b = arg->operator[](1);
 
 				if (a->type == b->type && a->type == value::number) {
 					if (a->number == b->number) {
@@ -746,8 +735,8 @@ void vm::Machine::handle_syscall(
 
 
 		case SYS_LT: {
-				auto *a1 = arg->operator[](0);
-				auto *a2 = arg->operator[](1);
+				value::obj a1 = arg->operator[](0);
+				value::obj a2 = arg->operator[](1);
 				if (a2->type != a1->type || a2->type != value::number) throw "attempt to compare two non-numbers";
 				if (a1->number < a2->number) {
 					stack->push(trueval);
@@ -759,7 +748,7 @@ void vm::Machine::handle_syscall(
 
 
 		case SYS_STRCONV: {
-				value::Object *str_o = new value::Object();
+				value::obj str_o = value::newobj();
 				str_o->type = value::string;
 				std::string s = arg->to_string(true);
 				str_o->string = new char[s.size()+1];
@@ -768,22 +757,22 @@ void vm::Machine::handle_syscall(
 			}; break;
 
 		case SYS_STRLEN: {
-				stack->push(new value::Object((double)arg->to_string().size()));
+				stack->push(value::newobj((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRREF: {
-				stack->push(new value::Object((double)arg->to_string().size()));
+				stack->push(value::newobj((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRSET: {
-				stack->push(new value::Object((double)arg->to_string().size()));
+				stack->push(value::newobj((double)arg->to_string().size()));
 			}; break;
 
 		case SYS_STRCAT: {
 				if (arg->operator[](0)->type != value::string || arg->operator[](0)->type != arg->operator[](1)->type) throw "string concatination requires two strings";
 				auto s = arg->operator[](0)->to_string(true) + arg->operator[](1)->to_string(true);
 				auto len = s.size();
-				value::Object *str_o = new value::Object();
+				value::obj str_o = value::newobj();
 				str_o->type = value::string;
 				str_o->string = new char[len+1];
 				memcpy(str_o->string, s.c_str(), len+1);

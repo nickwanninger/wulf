@@ -32,18 +32,18 @@
 
 
 
-value::Object* proc_binding_binding(int argc, value::Object **argv, State* state, scope::Scope* sc) {
+value::obj proc_binding_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
 	if (argc != 2) {
-		return new value::Object("must have two arguments");
+		return value::newobj("must have two arguments");
 	}
 
 	void *handle;
 	value::bind_func_t func;
 
 	if (argv[0]->type != value::string)
-		return value::newstring("first argument is not a string");
+		return value::newobj("first argument is not a string");
 	if (argv[1]->type != value::string)
-		return value::newstring("second argument is not a string");
+		return value::newobj("second argument is not a string");
 
 	handle = dlopen(argv[0]->string, RTLD_LAZY);
 
@@ -58,7 +58,7 @@ value::Object* proc_binding_binding(int argc, value::Object **argv, State* state
 	if (!func)
 		throw "not found";
 
-	auto *proc = new value::Object(value::procedure);
+	value::obj proc = value::newobj(value::procedure);
 	proc->code = new vm::Bytecode();
 	proc->code->type = vm::bc_binding;
 	proc->code->binding = func;
@@ -113,13 +113,17 @@ void State::eval(char* source) {
 	auto toks = lex(source);
 	auto parser = new Parser(toks);
 
-	std::vector<value::Object*> nodes;
+	std::vector<value::obj> nodes;
 
 	try {
 		nodes = parser->parse_top_level();
 	} catch (const char* msg) {
 		std::cerr << "Parse Error: " << msg << "\n";
 		return;
+	}
+
+	for (value::obj node : nodes) {
+		//std::cout << "parsed: " << node->to_string() << std::endl;
 	}
 
 	bool print_bytecode = false;
@@ -168,7 +172,7 @@ void State::eval(char* source) {
 			return;
 		}
 		if (machine->stack->index > 0) {
-			auto *top = machine->stack->pop();
+			value::obj top = machine->stack->pop();
 			if (repl) {
 				std::ostringstream name;
 				name << "$";
@@ -185,8 +189,8 @@ void State::eval(char* source) {
 }
 
 
-value::Object *State::bind(const char *name, value::bind_func_t binding) {
-	value::Object *proc = new value::Object(value::procedure);
+value::obj State::bind(const char *name, value::bind_func_t binding) {
+	value::obj proc = value::newobj(value::procedure);
 	proc->code = new vm::Bytecode();
 	proc->code->type = vm::bc_binding;
 	proc->code->name = name;

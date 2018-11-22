@@ -8,7 +8,7 @@
 const char* type_name = "my-type";
 
 wulf_binding(make_custom) {
-	value::Object *obj = new value::Object();
+	value::obj obj = value::newobj();
 	obj->type = value::custom;
 	obj->type_name = type_name;
 	obj->payload = (void*)type_name;
@@ -19,14 +19,14 @@ wulf_binding(make_custom) {
 wulf_binding(wulf_malloc) {
 	if (argc != 1) throw "malloc requires on argument";
 	if (argv[0]->type != value::number) throw "malloc requires a number (size)";
-	value::Object *obj = new value::Object();
+	value::obj obj = value::newobj();
 	obj->type = value::custom;
 	obj->type_name = "buffer";
 	obj->payload = GC_MALLOC((long)argv[0]->number);
 	return obj;
 }
 
-void eval_thread_function(State* state, scope::Scope* sc, value::Object* obj) {
+void eval_thread_function(State* state, scope::Scope* sc, value::obj obj) {
 	struct GC_stack_base base;
 	GC_get_stack_base(&base);
 	GC_register_my_thread(&base);
@@ -43,7 +43,7 @@ void eval_thread_function(State* state, scope::Scope* sc, value::Object* obj) {
 wulf_binding(eval_thread) {
 	if (argc != 1) throw "eval-thread requires one argument";
 	std::thread *thread = new std::thread(eval_thread_function, state, scope, argv[0]);
-	value::Object *obj = new value::Object();
+	value::obj obj = value::newobj();
 	obj->type = value::custom;
 	obj->type_name = "thread";
 	obj->payload = (void*)thread;
@@ -59,5 +59,5 @@ wulf_binding(thread_join) {
 		throw "join requires a thread object";
 	}
 
-	return new value::Object();
+	return value::newobj();
 }

@@ -31,9 +31,9 @@ namespace macro {
 		public:
 			std::string name;
 			std::vector<value::Argument> args;
-			value::Object *body;
+			value::obj body;
 			// expand a macro using the argument literal values
-			value::Object *expand(vm::Machine*, std::vector<value::Object*>, scope::Scope*);
+			value::obj expand(vm::Machine*, std::vector<value::obj>, scope::Scope*);
 	};
 }
 

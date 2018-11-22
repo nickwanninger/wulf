@@ -28,7 +28,7 @@
 #include <map>
 #include <macro.hh>
 
-typedef value::Object* stackval;
+typedef value::obj stackval;
 
 class State;
 namespace vm {
@@ -43,10 +43,11 @@ namespace vm {
 				double number;
 				long long whole;
 				char* string;
-				value::Object* object;
 				void *ptr;
 			};
+				value::obj object;
 			Instruction(opcode_t);
+			~Instruction() = default;
 			Instruction(opcode_t, double);
 			Instruction(opcode_t, char*);
 			Instruction(opcode_t, const char*);
@@ -64,7 +65,7 @@ namespace vm {
 			const char* name;
 			value::bind_func_t binding;
 			std::vector<Instruction> instructions;
-			value::Object *lambda; // a pointer to the definition for stringification
+			value::obj lambda; // a pointer to the definition for stringification
 			Instruction & push(Instruction);
 	};
 
@@ -96,16 +97,16 @@ namespace vm {
 	class Machine {
 		private:
 		public:
-			value::Object* nilval;
-			value::Object* trueval;
+			value::obj nilval;
+			value::obj trueval;
 			std::map<std::string, macro::Expansion*> macros;
 			bool debug = false;
 			Stack* stack;
 			State* state;
 			Machine();
 			void eval(Bytecode, scope::Scope*);
-			value::Object *eval(value::Object*, scope::Scope*);
-			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::Object*);
+			value::obj eval(value::obj, scope::Scope*);
+			void handle_syscall(std::stack<bytecode_stack_obj_t>&, scope::Scope*&, long long&, vm::Instruction&, int, value::obj);
 	};
 
 }

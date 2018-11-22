@@ -5,8 +5,10 @@
 #include <value.hh>
 #include <state.hh>
 
-
-#define wulf_binding(name) extern "C" value::Object* name(int argc, value::Object **argv, State* state, scope::Scope* scope)
+#define wulf_binding_sig(name) value::obj name(int argc, value::obj *argv, State* state, scope::Scope *scope)
+#define wulf_binding(name) \
+	wulf_binding_sig(name) asm ("_" #name); \
+	wulf_binding_sig(name)
 
 
 #endif

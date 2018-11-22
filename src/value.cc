@@ -25,42 +25,67 @@
 #include <math.h>
 #include <syscall.hh>
 #include <gc/gc_cpp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <config.hh>
 
 using namespace value;
 
+// #define OBJECT_DEBUG
 
 Object::Object() {
-}
-
-Object::Object(Type t) {
-	this->type = t;
-}
-Object::Object(double val) {
-	type = value::number;
-	number = val;
-	Object();
-}
-
-Object::Object(char* str) {
-	string = str;
-	type = value::string;
-}
-Object::Object(const char* str) {
-	string = ccharcopy(str);
-	type = value::string;
+#ifdef OBJECT_DEBUG
+	std::cout << "Construct Object\n";
+#endif
 }
 
 Object::~Object() {
-	// delete this;
-	// std::cout << "Delete Object " << to_string() << "\n";
+#ifdef OBJECT_DEBUG
+	std::cout << "Delete Object\n";
+#endif
 }
 
-void* Object::operator new(size_t size) {
-	return GC_MALLOC(size);
+obj Object::getptr() {
+#ifdef CONF_USE_SMARTPTR
+	return shared_from_this();
+#else
+	return this;
+#endif
 }
 
-void Object::operator delete(void* ptr) {
-	return GC_FREE(ptr);
+obj value::newobj() {
+	return value::Object::create(value::nil);
+}
+
+obj value::newobj(Type t) {
+	obj o = Object::create(t);
+	return o;
+}
+
+obj value::newobj(double val) {
+	obj o = Object::create(value::number);
+	o->number = val;
+	return o;
+}
+
+obj value::newobj(char* str) {
+	obj o = Object::create(value::string);
+	o->string = str;
+	return o;
+}
+
+obj value::newobj(const char* str) {
+	return value::newobj(ccharcopy(str));
+}
+
+obj Object::create(Type t) {
+#ifdef CONF_USE_SMARTPTR
+	obj o = std::make_shared<value::Object>();
+#else
+	obj o = new value::Object();
+#endif
+	o->type = t;
+	return o;
 }
 
 
@@ -74,27 +99,29 @@ void Object::write_stream(std::ostream & buf, bool human) {
 			break;
 		case value::list: {
 
-				if (car == NULL) {
+				if (car == nullptr) {
 					buf << "()";
 					return;
 				}
 
-				if (cdr == NULL) cdr = new value::Object(value::nil);
+				if (cdr == nullptr) cdr = value::newobj(value::nil);
 				if (is_pair()) {
 					buf << "(" << car->to_string() << " . " << cdr->to_string() << ")";
 					break;
 				}
 				buf << "(";
-				Object* curr = this;
-				while (curr->car != NULL) {
+
+
+				value::obj curr = getptr();
+				while (curr->car != nullptr) {
 					buf << curr->car->to_string(false);
-					if (curr->cdr != NULL) {
+					if (curr->cdr != nullptr) {
 						if (curr->cdr->is_pair()) {
 							buf << " " << curr->cdr->car->to_string()
 								<< " . " << curr->cdr->cdr->to_string();
 							break;
 						}
-						if (curr->cdr->car != NULL)
+						if (curr->cdr->car != nullptr)
 							buf << " ";
 						curr = curr->cdr;
 					}
@@ -164,6 +191,13 @@ std::string Object::to_string(bool human) {
 }
 
 
+long Object::retain() {
+	return ++refcount;
+}
+long Object::release() {
+	return --refcount;
+}
+
 
 #define BIN_CALL(name, op) \
 	if (!strcmp(name, callname)) { if (arg_count == 2) {bc->push(vm::Instruction(op)); return; } else { throw "attempt to call binary math operator requires two arguments"; } }
@@ -193,43 +227,42 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 					ifcall(set!) {
 						if (length() != 3) throw "call to set! requires 2 argumenst";
-						auto self = *this;
-						value::Object name = *self[1];
-						value::Object val = *self[2];
-						if (name.type != value::ident) throw "name argument for set! must be an identifier literal";
-						val.compile(machine, sc, bc);
+						value::obj name = (*this)[1];
+						value::obj val = (*this)[2];
+						if (name->type != value::ident) throw "name argument for set! must be an identifier literal";
+						val->compile(machine, sc, bc);
 						vm::Instruction inst(OP_STORE_LOCAL);
-						inst.string = name.string;
+						inst.string = name->string;
 						bc->push(inst);
 						return;
 					}
 
 					ifcall(def) {
 						if (cdr->car == NULL || cdr->cdr->car == NULL) throw "call to def requires at least two arguments";
-						auto *name = cdr->car;
+						auto name = cdr->car;
 
 						// if the name is a list, I have to convert the syntactical sugar to
 						// a more usable syntax with lambdas
 						if (name->type == value::list) {
 							// the following code is quite spooky. plz be careful.
-							auto lambda = *newlist();
+							value::obj lambda = value::newobj(value::list);
 							if (name->car->type != value::ident)
 								throw "call to def with function declaration syntax requires a function name as the car argument to the list";
-							lambda.type = value::list;
-							lambda.car = new value::Object("fn");
-							lambda.car->type = value::ident;
-							lambda.cdr = new value::Object(value::list);
-							lambda.cdr->car = name->cdr;
-							lambda.cdr->cdr = new value::Object();
-							lambda.cdr->cdr->car = cdr->cdr->car;
-							lambda.cdr->cdr->cdr = new value::Object();
-							cdr->cdr->car = new value::Object(lambda);
+							lambda->type = value::list;
+							lambda->car = value::newobj("fn");
+							lambda->car->type = value::ident;
+							lambda->cdr = value::newobj(value::list);
+							lambda->cdr->car = name->cdr;
+							lambda->cdr->cdr = value::newobj();
+							lambda->cdr->cdr->car = cdr->cdr->car;
+							lambda->cdr->cdr->cdr = value::newobj();
+							cdr->cdr->car = lambda;
 							cdr->car = name->car;
 							name = name->car;
 						}
 
 						if (name->type == value::ident) {
-							auto *val = cdr->cdr->car;
+							value::obj val = cdr->cdr->car;
 							val->compile(machine, sc, bc);
 							auto store = vm::Instruction(OP_STORE_LOCAL);
 							store.string = name->string;
@@ -279,14 +312,13 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 					}
 
 					ifcall(defmacro) {
-						value::Object self = *this;
 						int len = length();
 
 						if (len != 3)
 							throw "macro definition requires 2 arguments (args and body)";
 
-						auto* arg = operator[](1);
-						auto* body = operator[](2);
+						value::obj arg = get(1);
+						value::obj body = get(2);
 
 						if (arg->type != value::list)
 							throw "macro definition requires a list as the second argument. ex: (name ...)";
@@ -294,7 +326,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						if (arg->length() == 0)
 							throw "macro definition must have a name";
 
-						auto* name = arg->operator[](0);
+						value::obj name = arg->get(0);
 						if (name->type != value::ident)
 							throw "macro definition requires an identifier as a name";
 
@@ -305,7 +337,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						// we have to conditionally parse the arguments
 						arg = arg->cdr;
 						if (arg != NULL) {
-							mac->args = *value::parse_fn_args(*arg);
+							mac->args = *value::parse_fn_args(arg);
 						} else {
 							mac->args = std::vector<Argument>();
 						}
@@ -321,20 +353,20 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 						if (cdr->car == NULL) throw "'fn' call requires more arguments";
 						if (length() == 2) throw "'fn' call missing body";
-						auto *arglist = cdr->car;
+						value::obj arglist = cdr->car;
 
-						auto proc = new value::Object();
+						auto proc = value::newobj();
 						proc->type = value::procedure;
 						proc->code = new vm::Bytecode();
 
 						// std::cout << to_string() << "\n";
 
-						proc->args = value::parse_fn_args(*arglist);
+						proc->args = value::parse_fn_args(arglist);
 
-						auto expr = operator[](2);
+						auto expr = get(2);
 						expr->compile(machine, sc, proc->code);
 						proc->code->push(OP_RETURN);
-						proc->code->lambda = new value::Object(*this);
+						proc->code->lambda = getptr();
 
 						vm::Instruction inst(OP_PUSH_FN);
 						inst.object = proc;
@@ -378,7 +410,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 						auto self = *this;
 						if (len < 2) throw "call to if requires a predicate, then, and optionally a false";
 						if (len < 3) throw "call to if requires at least a truthy value";
-						if (len < 4) append(new value::Object()); // if there isn't an else value, make it a nil
+						if (len < 4) append(value::newobj()); // if there isn't an else value, make it a nil
 
 						self[1]->compile(machine, sc, bc);
 						// push a branch onto the bytecode stack and keep a reference to it.
@@ -412,10 +444,10 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				// check if there is a macro for this function call
 				if (machine->macros.count(callstr)) {
 					// construct an argument list for the expansion
-					std::vector<value::Object*> args;
+					std::vector<value::obj> args;
 					int len = length();
 					for (int i = 1; i < len; i++) {
-						args.push_back(operator[](i));
+						args.push_back(get(i));
 					}
 					auto *macro = machine->macros[callstr];
 					if (macro == NULL)
@@ -427,7 +459,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				}
 
 				int arg_count = 0;
-				for (auto *arg = cdr; arg->type == value::list && arg->car != NULL; arg = arg->cdr) {
+				for (value::obj arg = cdr; arg->type == value::list && arg->car != NULL; arg = arg->cdr) {
 					arg->car->compile(machine, sc, bc);
 					arg_count++;
 				}
@@ -441,7 +473,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 				// and if it does, it won't bother looking up the function at runtime
 				try {
 
-					value::Object *calling = sc->root->find(car->to_string());
+					value::obj calling = sc->root->find(car->to_string());
 					if (calling->type == value::procedure) {
 						vm::Instruction in = OP_PUSH_RAW;
 						in.object = calling;
@@ -466,7 +498,7 @@ void Object::compile(vm::Machine* machine, scope::Scope* sc, vm::Bytecode* bc) {
 
 		default: {
 				 auto inst = vm::Instruction(OP_PUSH_RAW);
-				 inst.object = this;
+				 inst.object = getptr();
 				 bc->push(inst);
 			 }; break;
 	}
@@ -483,7 +515,7 @@ bool Object::is_call(const char* name) {
 }
 
 bool Object::is_pair() {
-	if (cdr == NULL) cdr = new value::Object();
+	if (cdr == NULL) cdr = value::newobj();
 	if (type != value::list) return false;
 	if (cdr->type == value::nil || cdr->type == value::list) return false;
 	return true;
@@ -496,7 +528,7 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 	if (type == value::list && car != NULL) {
 
 		if (is_call("unquote")) {
-			value::Object *u = m->eval(cdr->car, sc);
+			value::obj u = m->eval(cdr->car, sc);
 			bc->push(OP_PUSH_RAW).object = u;
 			return;
 		}
@@ -506,14 +538,14 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 		int len = length();
 		int consc = len;
 		for (int i = 0; i < len; i++) {
-			auto *elem = operator[](i);
+			value::obj elem = get(i);
 			if (elem->is_call("unquote-splicing")) {
-				value::Object *u = m->eval(elem->operator[](1), sc);
+				value::obj u = m->eval(elem->get(1), sc);
 				if (u->type == value::list) {
 					int ulen = u->length();
 					consc += ulen-1;
 					for (int j = 0; j < ulen; j++) {
-						bc->push(OP_PUSH_RAW).object = u->operator[](j);
+						bc->push(OP_PUSH_RAW).object = u->get(j);
 					}
 				} else {
 					bc->push(OP_PUSH_RAW).object = u;
@@ -530,7 +562,7 @@ void Object::compile_quasiquote(vm::Machine* m, scope::Scope* sc, vm::Bytecode* 
 	}
 
 	vm::Instruction & inst = bc->push(OP_PUSH_RAW);
-	inst.object = this;
+	inst.object = getptr();
 }
 
 bool Object::is_true() {
@@ -541,17 +573,17 @@ bool Object::is_true() {
 size_t Object::length() {
 	size_t len = 0;
 
-	Object* curr = this;
-	while (curr->cdr != NULL) {
-		if (curr->car != NULL) len++;
+	value::obj curr = getptr();
+	while (curr->cdr != nullptr) {
+		if (curr->car != nullptr) len++;
 		curr = curr->cdr;
 	}
 	return len;
 }
 
-Object* Object::operator[](int index) {
+value::obj Object::operator[](int index) {
 	size_t len = 0;
-	Object* curr = this;
+	value::obj curr = getptr();
 	while (curr->cdr != NULL) {
 		if (len == index) return curr->car;
 		if (curr->car != NULL) len++;
@@ -560,65 +592,41 @@ Object* Object::operator[](int index) {
 	return NULL;
 }
 
+value::obj Object::get(int index) {
+	return (*this)[index];
+}
 
-void Object::append(value::Object *obj) {
+
+void Object::append(value::obj obj) {
 	if (type != value::list) throw "unable to push_back to non-list";
-	auto curr = this;
+	auto curr = getptr();
 
 	while (curr->cdr != NULL) {
 		curr = curr->cdr;
 	}
 
-	curr->cdr = new value::Object(value::list);
+	curr->cdr = value::newobj(value::list);
 	curr->cdr->type = value::list;
 	curr->car = obj;
 }
 
 
-Object* value::newlist(std::vector<Object> items) {
-	auto *v = new Object();
-	v->type = value::list;
-	for (Object item : items) {
-		v->append(new value::Object(item));
-	}
-	return v;
-}
-
-Object* value::newident(const char* i) {
-	auto *v = new Object();
-	v->type = value::ident;
-	v->string = strdup(i);
-	return v;
-}
-Object* value::newstring(const char* i) {
-	auto *v = new Object();
-	v->type = value::string;
-	v->string = strdup(i);
-	return v;
-}
-Object* value::newnumber(double n) {
-	auto *v = new Object();
-	v->type = value::number;
-	v->number = n;
-	return v;
-}
-
-std::vector<Argument>* value::parse_fn_args(value::Object list) {
+std::vector<Argument>* value::parse_fn_args(value::obj list) {
 	auto* args = new std::vector<Argument>();
 
-	if (list.type == value::list) {
-		int len = list.length();
+	if (list->type == value::list) {
+		int len = list->length();
 		for (int i = 0; i < len; i++) {
-			value::Object arg = *list[i];
-			if (arg.type == value::keyword) {
+			value::obj arg = (*list)[i];
+			if (arg->type == value::keyword) {
 				if (i > len - 1)
 					throw "keyword argument is missing it's ident argument";
-				if (!strcmp(arg.string, ":rest")) {
-					arg = *list[++i];
-					if (arg.type != value::ident) throw ":rest argument modifier requires a following ident as a name";
+				if (!strcmp(arg->string, ":rest")) {
+					arg = (*list)[++i];
+					if (arg->type != value::ident) throw ":rest argument modifier requires a following ident as a name";
 					Argument a;
 					a.type = value::rest;
-					a.name = strdup(arg.string);
+					a.name = strdup(arg->string);
 					args->push_back(a);
 					if (i < len - 1) {
 						throw ":rest argument must be the cdr argument";
@@ -626,18 +634,18 @@ std::vector<Argument>* value::parse_fn_args(value::Object list) {
 				} else
 					throw "unknown keyword used in argument list";
 
-			} else if (arg.type == value::ident) {
+			} else if (arg->type == value::ident) {
 				Argument a;
-				a.name = strdup(arg.string);
+				a.name = strdup(arg->string);
 				args->push_back(a);
 			} else {
-				std::cout << list.to_string() << "\n";
+				std::cout << list->to_string() << "\n";
 				throw "Syntax Error: argument list in function must be idents or keywords";
 			}
 		}
-	} else if (list.type == value::ident) {
+	} else if (list->type == value::ident) {
 		Argument a;
-		a.name = list.string;
+		a.name = list->string;
 		a.type = value::plain;
 		args->push_back(a);
 	} else
@@ -646,7 +654,7 @@ std::vector<Argument>* value::parse_fn_args(value::Object list) {
 }
 
 
-void value::argument_scope_expand(std::vector<Argument> args, std::vector<value::Object*> objs, scope::Scope* sc) {
+void value::argument_scope_expand(std::vector<Argument> args, std::vector<value::obj> objs, scope::Scope* sc) {
 
 	int i, passedc;
 	value::Argument argname;
@@ -660,7 +668,7 @@ void value::argument_scope_expand(std::vector<Argument> args, std::vector<value:
 		if (argname.type == value::plain) {
 			sc->set(std::string(argname.name), objs[i]);
 		} else if (argname.type == value::rest) {
-			value::Object *lst = new value::Object(value::list);
+			value::obj lst = value::newobj(value::list);
 			while (i < passedc)
 				lst->append(objs[i++]);
 			sc->set(std::string(argname.name), lst);
@@ -669,10 +677,9 @@ void value::argument_scope_expand(std::vector<Argument> args, std::vector<value:
 	}
 }
 
-
-
-
-
-value::Object *value::copy(value::Object *o) {
-	return new value::Object(*o);
+// copy the memory directly
+value::obj value::copy(value::obj o) {
+	value::Object *n = new value::Object(*o);
+	n->refcount = 0;
+	return n;
 }

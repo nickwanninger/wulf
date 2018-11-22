@@ -12,5 +12,5 @@ wulf_binding(bytecode_print) {
 	for (auto inst : argv[0]->code->instructions) {
 		std::cout << inst.to_string() << "\n";
 	}
-	return new value::Object();
+	return value::newobj();
 }
