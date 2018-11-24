@@ -237,7 +237,6 @@ std::string get_file_ext(const std::string& s) {
 }
 
 void State::eval_file(char* source) {
-	std::cout << "EVAL_FILE: " << source << "\n";
 	apathy::Path oldpath = current_path;
 	current_path = source;
 	std::string name(strdup(source));
