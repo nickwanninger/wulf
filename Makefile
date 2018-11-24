@@ -54,7 +54,7 @@ clean:
 	@rm -rf $(OBJDIR)
 	@rm -rf $(exe)
 	@rm -rf src/lex.yy.cc
-	@rm -rf lib/stdbind.so
+	@rm -rf lib/stdbind.so*
 
 install:
 	install wulf /usr/local/bin
