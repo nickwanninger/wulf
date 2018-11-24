@@ -21,109 +21,187 @@
 
 autonum::autonum(double v) {
 	type = floating;
-	nf = v;
+	flt = v;
 }
 
 autonum::autonum(int v) {
 	type = integer;
-	ni = v;
+	num = v;
+	den = 1;
 }
+
 autonum::autonum(int64_t v) {
 	type = integer;
-	ni = v;
+	num = v;
+	den = 1;
+}
+autonum::autonum(int64_t n, int64_t d) {
+	type = integer;
+	num = n;
+	den = d;
+	simplify();
+}
+
+
+
+void autonum::simplify(void) {
+	int64_t rn, rd, gcd;
+	if (num < den) {
+		gcd = num;
+	} else {
+		gcd = den;
+	}
+	if (num == 0 || den == 0) {
+		rn = 0;
+		rd = 0;
+	} else {
+		while (gcd > 1) {
+			if (num % gcd == 0 && den % gcd == 0)
+				break;
+			gcd--;
+		}
+		rn = num / gcd;
+		rd = den / gcd;
+	}
+
+	//num = rn;
+	//den = rd;
 }
 
 #define AUTONUM_OP_BODY(op) \
 	if (type == floating) { \
-		if (other.type == floating) return nf op other.nf; \
-		if (other.type == integer) return nf op other.ni; \
+		if (other.type == floating) return flt op other.flt; \
+		if (other.type == integer) return flt op other.to_double(); \
 	} \
 	if (type == integer) { \
-		if (other.type == floating) return ni op other.nf; \
-		if (other.type == integer) return ni op other.ni; \
+		if (other.type == floating) return flt op other.flt; \
+		if (other.type == integer) return num op other.num; \
 	} \
 
-autonum autonum::operator+(const autonum & other) {
-	AUTONUM_OP_BODY(+);
-	return autonum(0);
+
+
+autonum & autonum::operator=(const autonum & b) {
+	return *this;
 }
 
-autonum autonum::operator-(const autonum & other) {
-	AUTONUM_OP_BODY(-);
-	return autonum(0);
+autonum autonum::operator+(const autonum & b) {
+	// if either of them is a float/double, return them both as doubles
+	if (type == floating || b.type == floating) return to_double() + b.to_double();
+	if (den == 1 && den == b.den) return num + b.num;
+	autonum a = *this;
+	autonum res = 1;
+	res.num = a.num * b.den + b.num * a.den;
+	res.den = a.den * b.den;
+	res.simplify();
+	return res;
 }
 
-autonum autonum::operator*(const autonum & other) {
-	AUTONUM_OP_BODY(*);
-	return autonum(0);
+autonum autonum::operator-(const autonum & b) {
+	// if either of them is a float/double, return them both as doubles
+	if (type == floating || b.type == floating) return to_double() - b.to_double();
+	if (den == 1 && den == b.den) return num - b.num;
+	autonum a = *this;
+	autonum res = 1;
+	res.num = a.num * b.den - b.num * a.den;
+	res.den = a.den * b.den;
+	res.simplify();
+	return res;
 }
 
-autonum autonum::operator/(const autonum & other) {
-	AUTONUM_OP_BODY(/);
-	return autonum(0);
+
+autonum autonum::operator*(const autonum & b) {
+	// if either of them is a float/double, return them both as doubles
+	if (type == floating || b.type == floating) return to_double() * b.to_double();
+	if (den == 1 && den == b.den) return num * b.num;
+	autonum a = *this;
+	autonum res = 1;
+	res.num = a.num * b.num;
+	res.den = a.den * b.den;
+	res.simplify();
+	return res;
+}
+
+autonum autonum::operator/(const autonum & b) {
+	// if either of them is a float/double, return them both as doubles
+	if (type == floating || b.type == floating) return to_double() * b.to_double();
+	autonum a = *this;
+	autonum res = 1;
+	res.num = a.num * b.den;
+	res.den = a.den * b.num;
+	res.simplify();
+	return res;
 }
 
 
 autonum autonum::operator+=(const autonum & other) {
-	AUTONUM_OP_BODY(+=);
-	return autonum(0);
+	*this = *this + other;
+	return *this;
 }
 
 autonum autonum::operator-=(const autonum & other) {
-	AUTONUM_OP_BODY(-=);
-	return autonum(0);
+	*this = *this - other;
+	return *this;
 }
 
 autonum autonum::operator*=(const autonum & other) {
-	AUTONUM_OP_BODY(*=);
-	return autonum(0);
+	*this = *this * other;
+	return *this;
 }
 
 autonum autonum::operator/=(const autonum & other) {
-	AUTONUM_OP_BODY(/=);
-	return autonum(0);
+	*this = *this / other;
+	return *this;
 }
 
 
-bool autonum::operator==(const autonum & other) {
-	AUTONUM_OP_BODY(==);
-	return false;
+bool autonum::operator==(const autonum & b) {
+	// if either of them is a float/double, return them both as doubles
+	if (type == floating || b.type == floating) return to_double() == b.to_double();
+	autonum a = *this;
+	return a.num == b.num && a.den == b.den;
 }
 
 bool autonum::operator!=(const autonum & other) {
-	AUTONUM_OP_BODY(!=);
-	return false;
+	return !(*this == other);
 }
 
 bool autonum::operator<(const autonum & other) {
-	AUTONUM_OP_BODY(<);
-	return false;
+	return compare(other) < 0;
 }
 
 bool autonum::operator<=(const autonum & other) {
-	AUTONUM_OP_BODY(<=);
-	return false;
+	return compare(other) <= 0;
 }
 
 bool autonum::operator>(const autonum & other) {
-	AUTONUM_OP_BODY(==);
-	return false;
+	return compare(other) > 0;
 }
 
 bool autonum::operator>=(const autonum & other) {
-	AUTONUM_OP_BODY(!=);
-	return false;
+	return compare(other) >= 0;
 }
-#define AUTONUM_CAST_IMPL(t) t autonum::to_##t() { return (type == integer) ? (t)ni : (t)nf; }
+// compare two fractions
+uint64_t autonum::compare(const autonum & r) const {
+	return to_double() - r.to_double();
+}
 
-AUTONUM_CAST_IMPL(int);
-AUTONUM_CAST_IMPL(long);
-AUTONUM_CAST_IMPL(float);
-AUTONUM_CAST_IMPL(double);
+
+uint64_t autonum::to_int() const {
+	return (uint64_t)to_double();
+}
+
+
+double autonum::to_double() const {
+	if (type == integer) {
+		return (double)num / (double)den;
+	} else {
+		return flt;
+	}
+}
 
 std::string autonum::to_string() {
 	if (type == floating) {
-		auto str = std::to_string(nf);
+		auto str = std::to_string(flt);
 
 		long len = str.length();
 		for (int i = len-1; i > 0; i--) {
@@ -138,7 +216,14 @@ std::string autonum::to_string() {
 		}
 		return str;
 	}
-	return std::to_string(ni);
+
+	std::string res;
+	res += std::to_string(num);
+	if (den != 1) {
+		res += "/";
+		res += std::to_string(den);
+	}
+	return res;
 }
 
 std::ostream& operator<<(std::ostream& os, const autonum & num) {

@@ -48,9 +48,13 @@
 	return TOK_IDENTIFIER;
 }
 
--?([0-9]+([.][0-9]*)?|[.][0-9]+) {
-	return TOK_NUMBER;
+
+[0-9]+ {
+	return TOK_FLOAT;
 }
+
+[0-9]+"."[0-9]* return TOK_FLOAT;
+
 
 
 \"(\\.|[^"\\])*\" {
@@ -61,7 +65,11 @@
 	return TOK_QUOTE;
 }
 
-[ \t\n] ; // ignore whitespace
+[ \t\n] {
+	return TOK_WHITESPACE; // ignore whitespace
+}
+
+
 ";".*   ; // ignore comments
 
 "#!".*   ; // ignore crunch bang

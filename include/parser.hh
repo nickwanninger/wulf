@@ -70,4 +70,7 @@ class Parser {
 };
 
 
+std::string repl_highlight(char* input);
+
+
 #endif

@@ -24,7 +24,7 @@
 #include <scanner.hh>
 #include <scope.hh>
 #include <vm.hh>
-
+#include <path.hh>
 
 
 
@@ -35,6 +35,7 @@ class State {
 public:
 	int repl_index = 0;
 	bool repl = false;
+	apathy::Path current_path;
 	vm::Machine* machine = NULL;
 	State();
 	/*

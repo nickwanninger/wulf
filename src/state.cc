@@ -26,6 +26,8 @@
 #include <autonum.hh>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <signal.h>
+#include <path.hh>
 
 #define BIT(num, n) (((num) >> (n)) & 1)
 #define BITAD(b) ((b) == 0 ? 'a' : 'd')
@@ -69,6 +71,27 @@ value::obj proc_binding_binding(int argc, value::obj *argv, State* state, scope:
 	return proc;
 }
 
+value::obj load_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
+	if (argc != 1) {
+		throw "'load' requires one argument";
+	}
+
+	if (argv[0]->type != value::string) throw "'load' requires a string as an argument";
+
+	apathy::Path oldpath = state->current_path;
+
+
+	apathy::Path newpath;
+	if (oldpath.is_file())
+		oldpath = oldpath.up();
+	newpath = oldpath.relative(argv[0]->string);
+	bool repls = state->repl;
+	state->repl = false;
+	char* path = ccharcopy(newpath.string().c_str());
+	state->eval_file(path);
+	state->repl = repls;
+	return value::newobj(value::nil);
+}
 
 State::State() {
 	scope = new scope::Scope();
@@ -76,11 +99,12 @@ State::State() {
 	machine = new vm::Machine();
 	machine->state = this;
 
+	current_path = apathy::Path::cwd();
 
 	bind("proc-binding", proc_binding_binding);
 	// bootstrap the load procedure
-	eval("(def (load path) (syscall 8 path))");
-	// define some basic functions
+	bind("load", load_binding);
+	// load up the runtime
 	eval("(load \"/usr/local/lib/wulf/runtime.wl\")");
 
 
@@ -180,9 +204,9 @@ void State::eval(char* source) {
 				scope->root->set(name.str(), top);
 				repl_index++;
 				// if (top->type != value::nil)
-				std::cout << "\x1B[90m" << name.str() << ": " << KGRN;
-				top->write_stream(std::cout, false);
-				std::cout << RST << "\n";
+				std::cout << "\x1B[90m" << name.str() << ": " << RST;
+				std::cout << repl_highlight((char*)top->to_string(false).c_str());
+				std::cout << "\n";
 			}
 		}
 	}
@@ -213,6 +237,9 @@ std::string get_file_ext(const std::string& s) {
 }
 
 void State::eval_file(char* source) {
+	std::cout << "EVAL_FILE: " << source << "\n";
+	apathy::Path oldpath = current_path;
+	current_path = source;
 	std::string name(strdup(source));
 
 	std::string ext = get_file_ext(name);
@@ -224,18 +251,26 @@ void State::eval_file(char* source) {
 	try {
 		char* contents = read_file_contents(ccharcopy(name.c_str()));
 		eval(contents);
+		current_path = oldpath;
 	} catch (const char* err) {
 		throw err;
 	}
 }
 
 
+
+
+void sigint(int a) {
+	printf("\n^C caught\n");
+}
+
 void State::run_repl() {
-	std::string line;
 	repl = true;
 	char* buf;
+	// signal(SIGINT, sigint);
 
 	while (true) {
+
 		buf = linenoise("# ");
 
 		std::cout << RST;
@@ -248,8 +283,8 @@ void State::run_repl() {
 		// free the buffer provided by linenoise
 		free(buf);
 	}
+	/// signal(SIGINT, SIG_DFL);
+	// signal(SIGINT, SIG_DFL);
 	repl = false;
 }
-
-
 

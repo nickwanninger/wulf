@@ -26,6 +26,8 @@
 
 (def (macroexpand exp) (syscall 3 exp))
 
+(load "test.wl")
+
 
 (defmacro (fn* args :rest body)
   ,(fn ,args (do ,@body)))
@@ -75,6 +77,9 @@
 (stdproc cdr "cdr")
 (stdproc rest "cdr")
 
+
+(def (second x) (car (cdr x)))
+
 ;; -----------------------------------------------
 
 (stdproc setf "setf")
@@ -105,10 +110,12 @@
 (def (let-helper/names args) (map car args))
 (def (let-helper/vals args) (map (fn x (first (rest x))) args))
 
-(defmacro (let vals-n-names :rest body)
-  `((fn ,(let-helper/names vals-n-names)
+(defmacro (let vals :rest body)
+  `((fn ,(let-helper/names vals)
       (do ,@body))
-    ,@(let-helper/vals vals-n-names)))
+    ,@(let-helper/vals vals)))
+
+(defmacro (test vals) `(,(let-helper/vals vals)))
 
 ;; -------------------------------------
 
@@ -218,8 +225,8 @@
 
 (def (zip l1 l2)
   (if (not (or (nil? l1) (nil? l2)))
-    (cons (list (first l1) (first l2))
-          (zip (rest l1) (rest l2)))))
+    (cons (list (car l1) (car l2))
+          (zip (cdr l1) (cdr l2)))))
 
 ;; run a function on each element in a list
 ;; and return nil (ignoring the result of the function
@@ -243,3 +250,14 @@
 (stdproc eval-thread "eval_thread")
 (stdproc join "thread_join")
 (defmacro (thread expr) `(eval-thread ',expr))
+
+
+
+
+
+(def (for/names vals) (map car vals))
+(def (for/vals vals) (map second vals))
+(defmacro (for vals :rest body)
+  (do
+    (print (for/names vals))
+    (print (for/vals vals))))

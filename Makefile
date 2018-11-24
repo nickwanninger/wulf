@@ -2,7 +2,7 @@ CC = clang
 CXX = clang++
 WARNINGS = -Wall -Wformat -Wno-unused-command-line-argument -Wno-deprecated-declarations -Wno-unused
 CFLAGS = -I./include -g -O3
-CXXLDLIBS = -std=c++11 -pthread -lc -lgc -lreadline -g -O3
+CXXLDLIBS = -std=c++11 -O3 -pthread -lc -lgc
 
 objs = $(srcs:.cc=.o)
 includes = $(wildcard include/*.hh)

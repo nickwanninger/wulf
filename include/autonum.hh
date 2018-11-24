@@ -32,19 +32,30 @@ enum autonum_type {
 #define AUTONUM_CAST_HEADER(t) t to_##t()
 
 class autonum {
+
+	private:
+		void simplify(void);
+		uint64_t compare(const autonum & other) const;
 	public:
 		autonum_type type = floating;
 		union {
-			double nf;
-			int64_t ni;
+			double flt;
+			struct {
+				int64_t num;
+				int64_t den;
+			};
 		};
 		autonum(double);
 		autonum(int);
 		autonum(int64_t);
+		autonum(int64_t, int64_t);
+
+		autonum & operator=(const autonum & other);
 		autonum operator+(const autonum & other);
 		autonum operator-(const autonum & other);
 		autonum operator*(const autonum & other);
 		autonum operator/(const autonum & other);
+
 		autonum operator+=(const autonum & other);
 		autonum operator-=(const autonum & other);
 		autonum operator*=(const autonum & other);
@@ -57,10 +68,8 @@ class autonum {
 		bool operator>(const autonum & other);
 		bool operator>=(const autonum & other);
 
-		AUTONUM_CAST_HEADER(int);
-		AUTONUM_CAST_HEADER(long);
-		AUTONUM_CAST_HEADER(float);
-		AUTONUM_CAST_HEADER(double);
+		uint64_t to_int() const;
+		double to_double() const;
 
 		std::string to_string();
 };

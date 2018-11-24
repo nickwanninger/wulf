@@ -121,14 +121,13 @@ long Stack::push(stackval val) {
 
 stackval Stack::pop() {
 	if (index > 0) --index;
-	auto val = get(index);
+	value::obj val = get(index);
 	// zero out the old location
 	ref(index+1) = NULL;
 	long shrink_size = stacksize / STACK_GROWTH_RATIO;
 	if (index + STACK_BREATHING_ROOM <= shrink_size && shrink_size >= STACK_BASE_SIZE) {
 		resize(stacksize / STACK_GROWTH_RATIO);
 	}
-	// std::cout << "pop: " << val << "\n";
 	return val;
 }
 
@@ -244,8 +243,6 @@ void Machine::eval(Bytecode bc, scope::Scope* calling_scope) {
 	std::stack<bytecode_stack_obj_t> bc_stk;
 
 	bc_stk.push({bc, 0, 0});
-
-
 
 
 	trueval->type = value::ident;

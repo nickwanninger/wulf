@@ -55,15 +55,17 @@ char* ccharcopy(const char*);
 
 #define TOK_EOF           0
 #define TOK_UNKNOWN       1
-#define TOK_NUMBER        2
-#define TOK_IDENTIFIER    3
-#define TOK_LPAREN        4
-#define TOK_RPAREN        5
-#define TOK_OPERATOR      6
-#define TOK_KEYWORD       7
-#define TOK_STRING        8
-#define TOK_QUOTE         9
-#define TOK_QUASIQUOTE    10
-#define TOK_UNQUOTE       11
-#define TOK_UNQUOTE_SPLICING 12
+#define TOK_FLOAT         2
+#define TOK_INT           3
+#define TOK_IDENTIFIER    4
+#define TOK_LPAREN        5
+#define TOK_RPAREN        6
+#define TOK_OPERATOR      7
+#define TOK_KEYWORD       8
+#define TOK_STRING        9
+#define TOK_QUOTE         10
+#define TOK_QUASIQUOTE    11
+#define TOK_UNQUOTE       12
+#define TOK_UNQUOTE_SPLICING 13
+#define TOK_WHITESPACE    14
 #endif

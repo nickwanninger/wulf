@@ -46,11 +46,9 @@ Object::~Object() {
 }
 
 obj Object::getptr() {
-#ifdef CONF_USE_SMARTPTR
-	return shared_from_this();
-#else
-	return this;
-#endif
+	obj o = this;
+	o.weak = true;
+	return o;
 }
 
 obj value::newobj() {
@@ -86,12 +84,9 @@ obj value::newident(const char* i) {
 }
 
 obj Object::create(Type t) {
-#ifdef CONF_USE_SMARTPTR
-	obj o = std::make_shared<value::Object>();
-#else
 	obj o = new value::Object();
-#endif
 	o->type = t;
+	o.weak = true;
 	return o;
 }
 
@@ -195,14 +190,6 @@ std::string Object::to_string(bool human) {
 	std::string str = buf.str();
 
 	return str;
-}
-
-
-long Object::retain() {
-	return ++refcount;
-}
-long Object::release() {
-	return --refcount;
 }
 
 
@@ -687,6 +674,5 @@ void value::argument_scope_expand(std::vector<Argument> args, std::vector<value:
 // copy the memory directly
 value::obj value::copy(value::obj o) {
 	value::Object *n = new value::Object(*o);
-	n->refcount = 0;
 	return n;
 }

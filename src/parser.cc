@@ -25,7 +25,11 @@
 #include <stdio.h>
 
 Parser::Parser(std::vector<Token> toks) {
-	tokens = toks;
+
+	for (auto t : toks) {
+		if (t.type != TOK_WHITESPACE)
+			tokens.push_back(t);
+	}
 	tok = toks[0];
 }
 
@@ -158,7 +162,7 @@ value::obj Parser::parse_ident() {
 }
 
 value::obj Parser::parse_number() {
-	requires(TOK_NUMBER);
+	requires(TOK_FLOAT);
 	auto obj = value::newobj();
 	obj->type = value::number;
 	obj->number = std::atof(tok.value);
@@ -175,7 +179,7 @@ value::obj Parser::parse_expr() {
 			throw "unexpected right paren";
 		case TOK_LPAREN:
 			return parse_list();
-		case TOK_NUMBER:
+		case TOK_FLOAT:
 			return parse_number();
 		case TOK_IDENTIFIER:
 			return parse_ident();
@@ -209,3 +213,51 @@ value::obj Parser::parse_expr() {
 	return value::newobj();
 }
 
+
+std::string repl_highlight(char* input) {
+	if (!isatty(fileno(stdin))) {
+		return std::string(input);
+	}
+	auto *scanner = new Scanner(input);
+	std::vector<Token> toks = scanner->run();
+
+	const char *color_number = "\x1b[34m";
+	const char *color_string = "\x1b[33m";
+	const char *color_builtin = "\x1b[35m";
+	const char *color_keyword = "\x1b[31m";
+
+	const char *keywords[] = {
+		"def", "fn", "defmacro", "if", "cond", "let", "set", "set!",
+		"setf", "eval", "apply", "do", "pow", "macroexpand",
+		"cons", "car", "cdr", "nil", "t",
+		"+", "-", "*", "/", "=", "<", ">", "<=", ">=",
+	};
+
+	std::string hl;
+	for (int i = 0; i < toks.size(); i++) {
+		bool has_color = true;
+		auto tok = toks[i];
+		const char* color = NULL;
+		switch (tok.type) {
+			case TOK_FLOAT: color = color_number; break;
+			case TOK_INT: color = color_number; break;
+			case TOK_STRING: color = color_string; break;
+			case TOK_KEYWORD: color = color_keyword; break;
+		}
+
+		if (tok.type == TOK_IDENTIFIER) {
+			for (int i = 0; i < sizeof(keywords)/sizeof(keywords[0]); i++) {
+				if (!strcmp(tok.value, keywords[i])) { color = color_builtin; break; }
+			}
+			if (tok.value[strlen(tok.value)-1] == '?') color = color_builtin;
+		}
+		if (color != NULL) hl += color;
+		if (tok.type == TOK_STRING) hl += "\"";
+		hl += toks[i].value;
+		if (tok.type == TOK_STRING) hl += "\"";
+		if (color != NULL) hl += "\x1b[0m";
+	}
+	delete scanner;
+
+	return hl;
+}

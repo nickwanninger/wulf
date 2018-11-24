@@ -8,18 +8,33 @@ objref::objref() {
 
 objref::objref(value::Object *ref) {
 	ptr = ref;
-	if (ptr != nullptr)
-		ptr->retain();
+	refcount = new long;
+	*refcount = 1;
 }
 
 objref::~objref() {
-	if (ptr != nullptr) {
-		if (ptr->release() == 0) {
-			delete ptr;
+	destroy();
+}
+
+void objref::destroy(void) {
+	if (weak) return;
+	if (refcount != NULL && ptr != NULL) {
+		if (*refcount <= 1) {
+			// std::cout << "would delete " << ptr << std::endl;
+			// delete ptr;
+			// delete refcount;
+		} else {
+			(*refcount)--;
 		}
-	} else {
 	}
 }
+
+
+void objref::init(void) {
+	refcount = new long;
+	*refcount = 0;
+}
+
 
 value::Object *objref::get() const {
 	return ptr;
@@ -38,6 +53,14 @@ inline objref::operator bool() {
 }
 
 
+void objref::clone_from(const objref & orig) {
+	this->ptr = orig.ptr;
+	this->refcount = orig.refcount;
+	if (orig.weak) weak = true;
+	if (!weak && refcount != NULL) (*refcount)++;
+}
+
+
 bool value::operator==(const objref & a, const objref & b) {
 	return a.get() == b.get();
 }
@@ -47,29 +70,16 @@ bool value::operator!=(const objref & a, const objref & b) {
 
 
 objref & objref::operator=(value::Object *ref) {
+	destroy();
 	ptr = ref;
-	if (ptr != nullptr)
-		ptr->retain();
+	refcount = new long;
+	*refcount = 1;
 	return *this;
 }
 
 
-objref & objref::operator=(const objref &other) {
-	if (this != &other) {
-		if (ptr != nullptr) {
-			// Decrement the old reference count
-			// if reference become zero delete the old data
-			if (ptr->release() == 0) {
-				delete ptr;
-			}
-		}
-
-		// Copy the data and reference pointer
-		// and increment the reference count
-		ptr = other.ptr;
-		if (ptr != nullptr) {
-			ptr->retain();
-		}
-	}
+objref & objref::operator=(const objref &orig) {
+	destroy();
+	clone_from(orig);
 	return *this;
 }

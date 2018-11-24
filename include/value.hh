@@ -48,7 +48,7 @@ namespace value {
 	 * the Type enum is a listing of various types an object can embody
 	 */
 	enum Type {
-		unknown, // 0
+		unknown, // 0l
 		list,    // 1
 		ident,   // 2
 		string,  // 3
@@ -60,11 +60,12 @@ namespace value {
 	};
 
 	class objref {
+		private:
+			void init(void);
 		public:
-			union {
-				value::Object *ptr;
-				// value::Object val;
-			};
+			bool weak = false;
+			long *refcount = nullptr;
+			value::Object *ptr = nullptr;
 
 			objref();
 			objref(value::Object*);
@@ -75,30 +76,33 @@ namespace value {
 			objref & operator=(const objref &);
 			objref & operator=(value::Object *);
 
+			void destroy(void);
+
 			inline explicit operator bool();
+		private:
+			void clone_from(const objref &);
 	};
 
 	bool operator==(const objref &, const objref &);
 	bool operator!=(const objref &, const objref &);
 
-	// using obj = objref;
-	using obj = value::Object*;
+	using obj = objref;
+	// using obj = value::Object*;
 
 	class Object {
 		public:
-			long refcount;
 			Type type = nil;
 			/*
 			 * a union for the various data types that can be
 			 * stored in an Object
 			 */
+			obj car;
+			obj cdr;
 			union {
 				double number;
 				char* string;
 
 				struct {
-					obj car;
-					obj cdr;
 				};
 
 				/*
@@ -140,9 +144,6 @@ namespace value {
 			void append(value::obj);
 			bool is_true();
 			size_t length();
-
-			long release();
-			long retain();
 
 			bool is_pair();
 			obj operator[] (int);

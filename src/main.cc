@@ -49,13 +49,14 @@
 	"Wulf Lisp\n" \
 	"Type 'wulf/copyright', 'wulf/warranty' or, 'wulf/help' for more information"\
 
-
 int main(int argc, char** argv) {
 
 #ifdef USE_GC
 	GC_INIT();
 	GC_allow_register_threads();
 #endif
+
+
 
 	// setup the random number generator
 	srand((unsigned int)time(nullptr));
@@ -130,9 +131,11 @@ void* operator new[](size_t size) {
 // delete operators should NOP because it would be faster
 // for the GC to just pick it up (dont know why, just is)
 void operator delete(void* ptr) _NOEXCEPT {
+	// std::cout << "free " << ptr << std::endl;
 	free_fn(ptr);
 }
 void operator delete[](void* ptr) _NOEXCEPT {
+	// std::cout << "free[] " << ptr << std::endl;
 	free_fn(ptr);
 }
 
