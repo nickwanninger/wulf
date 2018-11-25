@@ -79,8 +79,6 @@ value::obj load_binding(int argc, value::obj *argv, State* state, scope::Scope* 
 	if (argv[0]->type != value::string) throw "'load' requires a string as an argument";
 
 	apathy::Path oldpath = state->current_path;
-
-
 	apathy::Path newpath;
 	if (oldpath.is_file())
 		oldpath = oldpath.up();

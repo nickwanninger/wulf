@@ -22,6 +22,7 @@
 char* read_file_contents(char* filename) {
 	FILE* f = fopen(filename, "r");
 	if (f == NULL) {
+		std::cout << filename << " not found" << std::endl;
 		throw "file not found";
 	}
 	// Determine file size

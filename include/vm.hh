@@ -21,12 +21,12 @@
 
 #include <stdlib.h>
 #include <vector>
-#include <value.hh>
-#include <opcode.hh>
-#include <state.hh>
+#include "value.hh"
+#include "opcode.hh"
+#include "state.hh"
 #include <stack>
 #include <map>
-#include <macro.hh>
+#include "macro.hh"
 
 typedef value::obj stackval;
 

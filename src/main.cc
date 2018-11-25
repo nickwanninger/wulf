@@ -90,8 +90,9 @@ int main(int argc, char** argv) {
 
 
 		// if there was a file argument, evaluate that instead
-		char* filepath = argv[optind];
-		state->eval_file(filepath);
+		apathy::Path filepath = apathy::Path::cwd().relative(argv[optind]);
+		std::string fp_str = filepath.string();
+		state->eval_file(ccharcopy(fp_str.c_str()));
 
 		// if the user requested interactive mode, do that.
 		if (interactive) {

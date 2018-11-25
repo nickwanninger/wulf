@@ -19,9 +19,9 @@
 #ifndef __SCOPE_HH
 #define __SCOPE_HH
 
-#include <wulf.hh>
+#include "wulf.hh"
 #include <list>
-#include <value.hh>
+#include "value.hh"
 #include <map>
 
 

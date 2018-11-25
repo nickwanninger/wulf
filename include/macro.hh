@@ -21,8 +21,8 @@
 #ifndef __MACRO_HH
 #define __MACRO_HH
 
-#include <value.hh>
-#include <scope.hh>
+#include "value.hh"
+#include "scope.hh"
 #include <vector>
 #include <string>
 

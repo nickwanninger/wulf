@@ -22,8 +22,8 @@
 #define __PARSER_HH
 
 
-#include <scanner.hh>
-#include <value.hh>
+#include "scanner.hh"
+#include "value.hh"
 
 class Parser {
 	private:

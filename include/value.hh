@@ -23,7 +23,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
-#include <config.hh>
+#include "config.hh"
 
 #define NSCLASS(ns, name) namespace ns { class name; }
 NSCLASS(scope, Scope);

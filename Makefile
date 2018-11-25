@@ -28,9 +28,11 @@ COBJFILES := $(subst $(SRCDIR),$(OBJDIR)/c,$(CSRCFILES:%.c=%.o))
 
 # by default, compile the program with all threads :>
 default:
-	@$(MAKE) -j $(shell getconf _NPROCESSORS_ONLN) all
+	@$(MAKE) -j $(shell getconf _NPROCESSORS_ONLN) compile
 
-all: lib $(OBJDIR) $(exe)
+compile: $(OBJDIR) $(exe)
+
+all: compile install
 
 $(OBJDIR):
 	@mkdir -p $@
@@ -56,8 +58,8 @@ clean:
 	@rm -rf src/lex.yy.cc
 	@rm -rf lib/stdbind.so*
 
-install:
-	install wulf /usr/local/bin
+install: lib
+	@install wulf /usr/local/bin
 
 gen: src/lex.yy.cc
 
@@ -72,5 +74,8 @@ lib/stdbind.so: bindings/*.cc
 
 
 lib: lib/runtime.wl lib/stdbind.so
+	@rm -rf /usr/local/lib/wulf
 	@mkdir -p /usr/local/lib/wulf
 	@cp -a lib/ /usr/local/lib/wulf
+	@mkdir -p /usr/local/include/wulf
+	@cp -a include/ /usr/local/include/wulf

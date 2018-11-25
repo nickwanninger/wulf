@@ -19,12 +19,12 @@
 #ifndef __STATE_HH
 #define __STATE_HH
 
-#include <wulf.hh>
+#include "wulf.hh"
 #include <vector>
-#include <scanner.hh>
-#include <scope.hh>
-#include <vm.hh>
-#include <path.hh>
+#include "scanner.hh"
+#include "scope.hh"
+#include "vm.hh"
+#include "path.hh"
 
 
 
