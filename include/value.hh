@@ -62,6 +62,7 @@ namespace value {
 	class objref {
 		private:
 			void init(void);
+			void clone_from(const objref &);
 		public:
 			bool weak = false;
 			long *refcount = nullptr;
@@ -75,12 +76,22 @@ namespace value {
 			value::Object & operator*();
 			objref & operator=(const objref &);
 			objref & operator=(value::Object *);
+			inline explicit operator bool();
 
 			void destroy(void);
+			class iterator {
+				public:
+					value::Object *current;
+					iterator(value::Object *);
+					iterator & operator=(Object *);
+					iterator & operator++();
+					iterator operator++(int);
+					bool operator!=(const iterator &);
+					value::Object *operator*();
+			};
+			objref::iterator begin();
+			objref::iterator end();
 
-			inline explicit operator bool();
-		private:
-			void clone_from(const objref &);
 	};
 
 	bool operator==(const objref &, const objref &);
@@ -122,6 +133,7 @@ namespace value {
 					const char *type_name;
 				};
 			};
+
 			/*
 			 *
 			 */
@@ -144,6 +156,12 @@ namespace value {
 			void append(value::obj);
 			bool is_true();
 			size_t length();
+
+			void *operator new(size_t);
+			void operator delete(void*);
+
+			value::objref::iterator begin();
+			value::objref::iterator end();
 
 			bool is_pair();
 			obj operator[] (int);

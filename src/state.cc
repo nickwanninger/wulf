@@ -233,7 +233,7 @@ std::string get_file_ext(const std::string& s) {
    if (i != std::string::npos) {
       return(s.substr(i+1, s.length() - i));
    }
-   return("");
+   return "";
 }
 
 void State::eval_file(char* source) {

@@ -250,6 +250,9 @@ std::string repl_highlight(char* input) {
 				if (!strcmp(tok.value, keywords[i])) { color = color_builtin; break; }
 			}
 			if (tok.value[strlen(tok.value)-1] == '?') color = color_builtin;
+			std::string s(tok.value);
+			if (s.find("def") == 0) color = color_builtin;
+			if (s.find("set") == 0) color = color_builtin;
 		}
 		if (color != NULL) hl += color;
 		if (tok.type == TOK_STRING) hl += "\"";

@@ -49,11 +49,11 @@
 }
 
 
-[0-9]+ {
+-?[0-9]+ {
 	return TOK_FLOAT;
 }
 
-[0-9]+"."[0-9]* return TOK_FLOAT;
+-?[0-9]+"."[0-9]* return TOK_FLOAT;
 
 
 

@@ -83,6 +83,10 @@ obj value::newident(const char* i) {
 	return o;
 }
 
+
+static long long livecount = 0;
+static long long objcount = 0;
+
 obj Object::create(Type t) {
 	obj o = new value::Object();
 	o->type = t;
@@ -91,9 +95,26 @@ obj Object::create(Type t) {
 }
 
 
+void objfinalizer(void *o, void *p) {
+	livecount--;
+}
+
+
+void *Object::operator new(size_t size) {
+	void *ptr = GC_MALLOC(size);
+	objcount++;
+	livecount++;
+	GC_register_finalizer(ptr, objfinalizer, NULL, 0, 0);
+	return ptr;
+}
+
+void Object::operator delete(void *ptr) {
+	GC_free(ptr);
+}
+
+
 
 void Object::write_stream(std::ostream & buf, bool human) {
-
 	switch (type) {
 		case unknown:
 		case value::nil:
@@ -107,13 +128,12 @@ void Object::write_stream(std::ostream & buf, bool human) {
 				}
 
 				if (cdr == nullptr) cdr = value::newobj(value::nil);
+
 				if (is_pair()) {
 					buf << "(" << car->to_string() << " . " << cdr->to_string() << ")";
 					break;
 				}
 				buf << "(";
-
-
 				value::obj curr = getptr();
 				while (curr->car != nullptr) {
 					buf << curr->car->to_string(false);
@@ -676,3 +696,61 @@ value::obj value::copy(value::obj o) {
 	value::Object *n = new value::Object(*o);
 	return n;
 }
+
+
+
+
+
+value::obj::iterator value::Object::begin() {
+	return value::obj::iterator(this);
+}
+value::obj::iterator value::Object::end() {
+	return value::obj::iterator(nullptr);
+}
+value::obj::iterator value::obj::begin() {
+	return value::obj::iterator(ptr);
+}
+
+value::obj::iterator value::obj::end() {
+	return value::obj::iterator(nullptr);
+}
+
+
+value::obj::iterator::iterator(value::Object *p) {
+	current = p;
+}
+
+
+value::obj::iterator & value::obj::iterator::operator=(value::Object * o) {
+	current = o;
+	return *this;
+}
+
+value::obj::iterator & value::obj::iterator::operator++() {
+	if (current != nullptr)
+		current = current->cdr.get();
+
+	if (current->type != value::list) current = nullptr;
+	return *this;
+}
+
+value::obj::iterator value::obj::iterator::operator++(int) {
+	value::obj::iterator i = *this;
+	++*this;
+	return i;
+}
+
+bool value::obj::iterator::operator!=(const iterator & i) {
+	return i.current != current;
+}
+
+value::Object *value::obj::iterator::operator*() {
+	return current;
+}
+
+
+
+
+
+
+

@@ -26,7 +26,6 @@
 
 (def (macroexpand exp) (syscall 3 exp))
 
-(load "test.wl")
 
 
 (defmacro (fn* args :rest body)
@@ -35,6 +34,10 @@
 
 (defmacro (stdproc id bname)
   `(def ,id (proc-binding "/usr/local/lib/wulf/stdbind.so" ,bname)))
+
+
+(load "test.wl")
+(load "string.wl")
 
 
 ;; --------------- MATH ----------------
@@ -188,13 +191,7 @@
 (def (zero-upto a) (range-step 0 a 1))
 
 
-;; return the nth item in a list l
-(def (nth n l)
-  ; return nil if the user asks for anything less than 0
-  (if (< n 0) nil
-  (if (zero? n)
-    (first l)
-    (nth (dec n) (rest l)))))
+
 
 
 ;; append two lists
@@ -241,6 +238,21 @@
   (if (zero? n)
     nil
     (cons val (repeat val (dec n)))))
+
+
+
+(def (nth/list n l)
+  (if (< n 0) nil
+  (if (zero? n)
+    (first l)
+    (nth/list (dec n) (rest l)))))
+
+(def (nth/string n s) (strseq s n (inc n)))
+
+(def (nth n l)
+  (let ((typ (type l)))
+    (cond ((= typ :list) (nth/list n l))
+          ((= typ :string) (nth/string n l)))))
 
 
 

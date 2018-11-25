@@ -30,7 +30,7 @@ wulf_binding(wulf_equal) {
 				return value::newobj(value::nil);
 			}
 		}
-	} else if (a->type == b->type || a->to_string() == b->to_string()) {
+	} else if (a->type == b->type && a->to_string() == b->to_string()) {
 		return value::newident("t");
 	}
 	return value::newobj(value::nil);

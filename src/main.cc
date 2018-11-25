@@ -56,8 +56,6 @@ int main(int argc, char** argv) {
 	GC_allow_register_threads();
 #endif
 
-
-
 	// setup the random number generator
 	srand((unsigned int)time(nullptr));
 
