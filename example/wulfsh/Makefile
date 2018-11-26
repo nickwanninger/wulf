@@ -1,7 +1,7 @@
-bindings.so: bindings.cc
-	@clang++ -shared -undefined dynamic_lookup -o bindings.so bindings.cc
+src/bindings.so: bindings.cc
+	@clang++ -shared -undefined dynamic_lookup -o src/bindings.so bindings.cc
 
-default: bindings.so
+default: src/bindings.so
 
 clean:
-	rm -rf bindings.so
+	rm -rf src/bindings.so

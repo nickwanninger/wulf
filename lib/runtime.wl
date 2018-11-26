@@ -26,17 +26,16 @@
 
 (def (macroexpand exp) (syscall 3 exp))
 
-
-
 (defmacro (fn* args :rest body)
   ,(fn ,args (do ,@body)))
 
+(def stdbind-so (dlopen "/usr/local/lib/wulf/stdbind.so"))
+
 
 (defmacro (stdproc id bname)
-  `(def ,id (proc-binding "/usr/local/lib/wulf/stdbind.so" ,bname)))
+  `(def ,id (dlfunc stdbind-so ,bname)))
 
 
-(load "test.wl")
 (load "string.wl")
 
 

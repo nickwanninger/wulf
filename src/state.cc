@@ -34,42 +34,56 @@
 
 
 
-value::obj proc_binding_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
-	if (argc != 2) {
-		return value::newobj("must have two arguments");
-	}
 
-	void *handle;
+
+
+
+
+const char *dl_type = "shared-object-handle";
+
+value::obj dlopen_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
+	if (argc != 1) throw "dlopen requires an argument";
+	if (argv[0]->type != value::string) throw "dlopen requires a string path";
+	value::obj obj = value::newobj();
+	obj->type = value::custom;
+	obj->type_name = dl_type;
+
+	std::string path = state->current_path.up().relative(argv[0]->string).sanitize().string();
+	void *dl = dlopen(path.c_str(), RTLD_LAZY);
+	if (dl == NULL) throw "shared object file not found";
+	obj->payload = dl;
+	return obj;
+}
+
+
+
+value::obj dlfunc_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
+	if (argc != 2) throw "dlfunc requires 2 arguments";
+
+	if (argv[0]->type != value::custom && !strcmp(argv[1]->type_name, "shared-object-file"))
+		throw "first argument to dlfunc must be a shared-object-handle";
+
+	if (argv[1]->type != value::string)
+		throw "second argument to dlfunc must be a string";
 	value::bind_func_t func;
 
-	if (argv[0]->type != value::string)
-		return value::newobj("first argument is not a string");
-	if (argv[1]->type != value::string)
-		return value::newobj("second argument is not a string");
-
-	handle = dlopen(argv[0]->string, RTLD_LAZY);
-
-
-	const char *err = dlerror();
-	if (err)
-		std::cerr << err << "\n";
-
-	if (!handle) throw "dlopen failed to find a shared object file";
+	void *handle = argv[0]->payload;
+	if (handle == NULL) throw "shared object handle is NULL";
 
 	func = (value::bind_func_t)dlsym(handle, argv[1]->string);
-	if (!func)
-		throw "not found";
-
+	if (func == NULL)
+		throw "procedure not found at shared object file handle";
 	value::obj proc = value::newobj(value::procedure);
 	proc->code = new vm::Bytecode();
 	proc->code->type = vm::bc_binding;
 	proc->code->binding = func;
 	proc->code->name = argv[1]->string;
-
-
-
 	return proc;
 }
+
+
+
+
 
 value::obj load_binding(int argc, value::obj *argv, State* state, scope::Scope* sc) {
 	if (argc != 1) {
@@ -99,7 +113,8 @@ State::State() {
 
 	current_path = apathy::Path::cwd();
 
-	bind("proc-binding", proc_binding_binding);
+	bind("dlopen", dlopen_binding);
+	bind("dlfunc", dlfunc_binding);
 	// bootstrap the load procedure
 	bind("load", load_binding);
 	// load up the runtime

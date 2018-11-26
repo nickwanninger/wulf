@@ -35,11 +35,20 @@
 }
 
 
+
+-?[0-9]+ {
+	return TOK_FLOAT;
+}
+
+-?[0-9]+"."[0-9]* return TOK_FLOAT;
+
+
+
 :[_a-zA-Z\-\/\.:\*\?$][_a-zA-Z0-9\-\/\.:\*\?$]* {
 	return TOK_KEYWORD;
 }
 
-[_a-zA-Z\/\.:\*\?$][_a-zA-Z0-9\-\/\.:\*\?$\+\-\*\/\.\-><=\!]* {
+[_a-zA-Z\-\/\.:\*\?$][_a-zA-Z0-9\-\/\.:\*\?$\+\-\*\/\.\-><=\!]* {
 	return TOK_IDENTIFIER;
 }
 
@@ -47,13 +56,6 @@
 [\d\+\-\*\/\.\-><=]* {
 	return TOK_IDENTIFIER;
 }
-
-
--?[0-9]+ {
-	return TOK_FLOAT;
-}
-
--?[0-9]+"."[0-9]* return TOK_FLOAT;
 
 
 
